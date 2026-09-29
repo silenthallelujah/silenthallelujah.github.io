@@ -70,6 +70,25 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .feed div { padding: 4px 0; border-top: 1px solid var(--line); }
 .feed time { color: var(--muted); font-size: 11px; margin-right: 6px; }
 .col { display: grid; gap: 16px; align-content: start; }
+#board { grid-column: 1 / -1; }
+.bhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.bhead h2 { margin: 0; flex: 1; }
+.chip { font: 600 12px var(--body); background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; cursor: pointer; }
+.chip.on { background: var(--gold); color: #1b1a24; border-color: var(--gold); }
+.cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start; }
+@media (max-width: 900px) { .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.kcol { background: var(--panel2); border-radius: 6px; padding: 8px; min-height: 60px; }
+.kcol h3 { font: 9px/1.8 var(--pixel); margin: 2px 4px 8px; display: flex; justify-content: space-between; }
+.kcol h3 span { color: var(--muted); }
+.kcard { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--idle); border-radius: 5px; padding: 8px 9px; margin-bottom: 8px; }
+.kcard.s-doing { border-left-color: var(--work); } .kcard.s-waiting { border-left-color: var(--wait); } .kcard.s-done { border-left-color: #4a5a4f; opacity: .92; }
+.kcard .top { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 4px; }
+.kcard .ti { font-weight: 600; margin-bottom: 4px; overflow-wrap: anywhere; }
+.kcard .de { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.kcard .ft { color: var(--muted); font-size: 11px; margin-top: 6px; }
+.who-you { background: #3b2f12; color: var(--gold); } .who-claude { background: #1f2c3f; color: #8ecae6; }
+.more { width: 100%; margin-top: 2px; }
 #gate { position: absolute; inset: 0; display: none; place-items: center; background: rgba(8,8,14,.72); backdrop-filter: blur(2px); pointer-events: auto; }
 #gate .box { background: var(--panel); border: 2px solid var(--gold); border-radius: 8px; padding: 18px; width: min(92%, 380px); text-align: center; }
 #gate h3 { font: 11px/1.6 var(--pixel); margin: 0 0 10px; color: var(--gold); }
@@ -125,13 +144,19 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
     <div class="card">
       <h2>CLAUDE'S QUEUE</h2>
       <div id="claude"></div>
-      <details><summary>RECENTLY DONE</summary><div id="done"></div></details>
     </div>
     <div class="card">
       <h2>RECENT VIDEOS</h2>
       <table class="runs"><tbody id="runs"></tbody></table>
     </div>
   </aside>
+  <section id="board" class="card">
+    <div class="bhead">
+      <h2>PROJECT BOARD</h2>
+      <button class="chip on" data-own="all">All</button><button class="chip" data-own="You">You</button><button class="chip" data-own="Claude">Claude</button>
+    </div>
+    <div class="cols" id="cols"></div>
+  </section>
 </main>
 
 <script type="module">
@@ -352,10 +377,35 @@ function renderTasks() {
   const extra = boss?.status === "waiting" ? `<div class="todo"><div class="t">${esc(boss.activity)} <span class="pill st-waiting">now</span></div></div>` : "";
   document.getElementById("mine").innerHTML = extra + (mine.map(row).join("") || (extra ? "" : `<p class="muted">Nothing - enjoy your coffee.</p>`));
   document.getElementById("claude").innerHTML = claude.map(row).join("") || `<p class="muted">Queue is empty.</p>`;
-  document.getElementById("done").innerHTML = S.tasks.filter(t => t.status === "done")
-    .sort((a, b) => (b.done_on || "").localeCompare(a.done_on || "")).slice(0, 12)
-    .map(t => `<div class="todo"><div class="t"><span class="num">#${t.num}</span>${esc(t.title)}</div><div class="d">${esc(t.done_on || "")}</div></div>`).join("");
+  renderBoard();
 }
+const BOARD = { owner: "all", allDone: false, DONE_SHOWN: 8 };
+const COLS = [["backlog", "BACKLOG"], ["doing", "IN PROGRESS"], ["waiting", "WAITING"], ["done", "DONE"]];
+function renderBoard() {
+  const tasks = S.tasks.filter(t => BOARD.owner === "all" || t.owner === BOARD.owner);
+  const card = t => `<div class="kcard s-${esc(t.status)}">
+      <div class="top"><span class="num">#${t.num}</span><span class="badge">${esc(t.area)}</span>
+        <span class="badge ${t.owner === "You" ? "who-you" : "who-claude"}">${t.owner === "You" ? "You" : "Claude"}</span></div>
+      <div class="ti">${esc(t.title)}</div>
+      <div class="de">${esc(t.detail)}</div>
+      <div class="ft">${t.status === "done" ? `Done ${esc(t.done_on || "")}` : t.updated_at ? `Updated ${ago(t.updated_at)}` : ""}</div></div>`;
+  document.getElementById("cols").innerHTML = COLS.map(([st, label]) => {
+    let list = tasks.filter(t => t.status === st);
+    list.sort(st === "done" ? (a, b) => (b.done_on || "").localeCompare(a.done_on || "") || b.num - a.num : (a, b) => a.num - b.num);
+    const total = list.length, cut = st === "done" && !BOARD.allDone && total > BOARD.DONE_SHOWN;
+    if (cut) list = list.slice(0, BOARD.DONE_SHOWN);
+    const btn = st === "done" && total > BOARD.DONE_SHOWN
+      ? `<button class="chip more" id="moredone">${BOARD.allDone ? "Show fewer" : `Show all ${total}`}</button>` : "";
+    return `<div class="kcol"><h3>${label}<span>${total}</span></h3>${list.map(card).join("") || `<p class="muted" style="margin:4px">Nothing here.</p>`}${btn}</div>`;
+  }).join("");
+  const m = document.getElementById("moredone");
+  if (m) m.onclick = () => { BOARD.allDone = !BOARD.allDone; renderBoard(); };
+}
+document.querySelectorAll("[data-own]").forEach(b => b.onclick = () => {
+  BOARD.owner = b.dataset.own;
+  document.querySelectorAll("[data-own]").forEach(x => x.classList.toggle("on", x === b));
+  renderBoard();
+});
 const ICON = { youtube: "YouTube", facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok" };
 function renderRuns() {
   document.getElementById("runs").innerHTML = S.runs.slice(0, 10).map(r => `<tr><td class="muted">${esc(r.day.slice(5))}</td>
@@ -456,7 +506,10 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   Object.entries(names).forEach(([id, [name, role]]) => S.agents.set(id, { id, name, role, status: "idle", activity: "Demo", updated_at: now() }));
   S.runs = [{ day: manilaDay(), title: "Demo: Singing Praise Before the Angels", format: "psalm", stage: "planning", links: {} }];
   S.tasks = [{ id: "d1", num: 1, title: "Demo task waiting on you", detail: "Example only.", area: "Publishing", owner: "You", status: "waiting", sort: 1 },
-             { id: "d2", num: 2, title: "Demo task for Claude", detail: "Example only.", area: "Visuals", owner: "Claude", status: "doing", sort: 1 }];
+             { id: "d2", num: 2, title: "Demo task for Claude", detail: "Example only.", area: "Visuals", owner: "Claude", status: "doing", sort: 1 },
+             ...Array.from({ length: 11 }, (_, k) => ({ id: "d" + (k + 3), num: k + 3, title: `Demo finished task ${k + 3}`, detail: "Example only.",
+               area: "Infrastructure", owner: k % 2 ? "You" : "Claude", status: "done", done_on: `2026-09-${String(20 + (k % 9)).padStart(2, "0")}`, sort: k })),
+             { id: "d20", num: 20, title: "Demo backlog idea", detail: "Example only.", area: "Channel", owner: "You", status: "backlog", sort: 2 }];
   let i = 0;
   const stages = ["planning", "writing", "writing", "writing", "narrating", "rendering", "awaiting_approval", "scheduled"];
   const tick = () => {
