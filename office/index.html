@@ -84,6 +84,15 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .runs { width: 100%; border-collapse: collapse; }
 .runs td { padding: 6px 4px; border-top: 1px solid var(--line); vertical-align: top; }
 .runs a { margin-right: 8px; font-size: 12px; }
+.pfs { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 4px; }
+.pf { font: 600 11px var(--body); padding: 2px 7px; border-radius: 99px; background: var(--panel2); color: var(--muted);
+      text-decoration: none; margin: 0 !important; border: 1px solid var(--line); }
+.pf-posted { background: #173826; color: #8ff0b4; border-color: #2a6b45; } .pf-scheduled { background: #16283d; color: #9cc9f5; border-color: #2c4f75; }
+.pf-pending, .pf-retrying { background: #3a2f12; color: #ffd98a; border-color: #6b5520; }
+.pf-private, .pf-failed { background: #3a1518; color: #ffb3b3; border-color: #7a2a30; }
+.meter { height: 10px; background: var(--panel2); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
+.meter div { height: 100%; background: var(--work); } .meter.amber div { background: var(--wait); } .meter.red div { background: var(--err); }
+.cr { margin-bottom: 3px; }
 .feed { max-height: 320px; overflow: auto; font-size: 13px; }
 .feed div { padding: 4px 0; border-top: 1px solid var(--line); }
 .feed time { color: var(--muted); font-size: 11px; margin-right: 6px; }
@@ -185,6 +194,10 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
       <h2>RECENT VIDEOS</h2>
       <table class="runs"><tbody id="runs"></tbody></table>
     </div>
+    <div class="card">
+      <h2>TYPECAST CREDITS</h2>
+      <div id="credits" class="muted">Loading…</div>
+    </div>
   </aside>
   <section id="sched" class="card">
     <div class="bhead"><h2>WEEKLY SCHEDULE</h2><span id="schedbadge" class="badge"></span></div>
@@ -234,7 +247,7 @@ const overlay = document.getElementById("overlay");
 const px = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
 
 // ---------- state ----------
-const S = { agents: new Map(), events: [], runs: [], tasks: [], schedule: null, heartbeat: {}, approvalAlert: null,
+const S = { agents: new Map(), events: [], runs: [], tasks: [], schedule: null, heartbeat: {}, approvalAlert: null, credits: [],
             selected: null, bubbles: new Map() };
 const STATUS_COLOR = { working: "var(--work)", waiting: "var(--wait)", idle: "var(--idle)", error: "var(--err)", offline: "var(--off)" };
 const STALE_MS = 25 * 60 * 1000;
@@ -477,6 +490,7 @@ function renderToday() {
   const title = document.getElementById("todaytitle");
   const idx = run ? STAGE_INDEX[run.stage] ?? 0 : -1;
   title.innerHTML = run ? `<b>${esc(run.title || "Untitled yet")}</b> <span class="badge">${esc(run.format || "")}</span>`
+      + (Object.keys(run.platforms || {}).length ? `<div class="pfs">${platformChips(run)}</div>` : "")
     : (manilaHour() < 10 ? "The team starts at 10:00." : "No run recorded for today yet.");
   const pm = S.runs.find(r => r.day === day + "-pm");
   const STAGE_LABEL = { planning: "planning", writing: "writing", revising: "being revised", narrating: "recording",
@@ -527,10 +541,45 @@ document.querySelectorAll("[data-own]").forEach(b => b.onclick = () => {
   renderBoard();
 });
 const ICON = { youtube: "YouTube", facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok" };
+const PF_LABEL = { posted: "live", scheduled: "scheduled", pending: "pending", retrying: "retrying", private: "PRIVATE - set Public",
+                   failed: "failed", off: "not set up" };
+const safeUrl = u => /^https:\/\//.test(u || "") ? u : "";
+function studioUrl(u) { const m = /shorts\/([\w-]+)/.exec(u || ""); return m ? `https://studio.youtube.com/video/${m[1]}/edit` : ""; }
+function platformChips(r) {                     // per-platform state (from publish.py --status), else plain links
+  const pf = r.platforms || {};
+  if (!Object.keys(pf).length)
+    return Object.entries(r.links || {}).map(([k, u]) => safeUrl(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener">${ICON[k] || esc(k)}</a>` : "").join("");
+  return ["youtube", "facebook", "instagram", "tiktok"].filter(k => pf[k]).map(k => {
+    const s = pf[k], url = k === "youtube" && s.state === "private" ? studioUrl(s.url) : safeUrl(s.url);
+    const label = `${ICON[k]} · ${PF_LABEL[s.state] || s.state}`, tip = s.note ? ` title="${esc(s.note)}"` : "";
+    return url ? `<a class="pf pf-${esc(s.state)}" href="${esc(url)}" target="_blank" rel="noopener"${tip}>${esc(label)}</a>`
+               : `<span class="pf pf-${esc(s.state)}"${tip}>${esc(label)}</span>`;
+  }).join("");
+}
 function renderRuns() {
-  document.getElementById("runs").innerHTML = S.runs.slice(0, 10).map(r => `<tr><td class="muted">${esc(r.day.slice(5))}</td>
-    <td><b>${esc(r.title || "-")}</b><br><span class="badge">${esc(r.format || "")}</span><span class="badge">${esc(r.stage)}</span><br>
-    ${Object.entries(r.links || {}).map(([k, u]) => /^https:\/\//.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener">${ICON[k] || esc(k)}</a>` : "").join("")}</td></tr>`).join("");
+  document.getElementById("runs").innerHTML = S.runs.filter(r => !/^test-/.test(r.day)).slice(0, 10).map(r => `<tr><td class="muted">${esc(r.day.slice(5))}</td>
+    <td><b>${esc(r.title || "-")}</b><br><span class="badge">${esc(r.format || "")}</span><span class="badge">${esc(r.stage)}</span>
+    <div class="pfs">${platformChips(r)}</div></td></tr>`).join("");
+}
+function renderCredits() {
+  const el = document.getElementById("credits");
+  if (!el) return;
+  const rows = S.credits;
+  if (!rows.length) { el.innerHTML = `<p class="muted">No reading yet - the mini PC reports every 15 min.</p>`; return; }
+  const last = rows[rows.length - 1], left = last.total - last.used, pct = Math.min(100, (last.used / last.total) * 100);
+  let since = rows.findLastIndex((r, i) => i > 0 && r.used < rows[i - 1].used);   // the monthly reset, if in range
+  const cycle = rows.slice(Math.max(0, since));
+  const first = cycle.find(r => Date.parse(last.at) - Date.parse(r.at) <= 7 * 86400000) || cycle[0];
+  const days = (Date.parse(last.at) - Date.parse(first.at)) / 86400000;
+  const measured = days >= 0.5 && last.used > first.used;
+  const perDay = measured ? (last.used - first.used) / days : 2600;             // estimate: 2 videos x ~1,300 credits
+  const daysLeft = Math.floor(left / perDay);
+  const cls = left < 15000 ? "red" : daysLeft < 10 ? "amber" : "";
+  el.innerHTML = `<div class="meter ${cls}"><div style="width:${pct.toFixed(1)}%"></div></div>
+    <div class="cr"><b>${left.toLocaleString()}</b> credits left <span class="muted">of ${last.total.toLocaleString()} (${last.used.toLocaleString()} used)</span></div>
+    <div class="muted">Burning ~${Math.round(perDay).toLocaleString()}/day ${measured ? `(last ${days < 1.5 ? Math.round(days * 24) + " h" : Math.round(days) + " days"})` : "(estimate: 2 videos a day)"}
+    · enough for ~${daysLeft} days (~${Math.floor(left / 1300)} videos)</div>
+    <div class="muted">Checked ${ago(last.at)}</div>`;
 }
 function renderFeed() {
   document.getElementById("feed").innerHTML = S.events.slice(0, 40).map(e => {
@@ -625,6 +674,11 @@ function renderHealth() {
     alerts.push(["", `<b>${esc(a.name)} (${esc(a.role)})</b> ${stuck ? "seems stuck" : "reported a problem"}: ${esc(a.activity)}
       <span class="muted">· ${ago(a.updated_at)}${a.day ? ` · video ${esc(a.day)}` : ""}</span>`]);
   });
+  S.runs.filter(r => r.platforms?.youtube?.state === "private").slice(0, 3).forEach(r => {
+    const u = studioUrl(r.platforms.youtube.url);
+    alerts.push(["warn", `<b>"${esc(r.title || r.day)}" is still Private on YouTube</b> (the API audit hasn't passed yet).
+      ${u ? `<a href="${esc(u)}" target="_blank" rel="noopener">Open it in YouTube Studio</a> and set it to Public.` : "Set it to Public in YouTube Studio."}`]);
+  });
   if (S.approvalAlert) {
     const left = S.approvalAlert.live - LEAD_MS - now;
     alerts.push([left > 0 ? "warn" : "", left > 0
@@ -662,18 +716,20 @@ function renderSchedule() {
     <tbody>${rows}</tbody></table>
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
-function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); }
+function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); }
 
 // ---------- data ----------
 async function load() {
-  const [a, e, r, t, sc, hb] = await Promise.all([
+  const [a, e, r, t, sc, hb, cr] = await Promise.all([
     sb.from("agents").select("*"), sb.from("events").select("*").order("at", { ascending: false }).limit(60),
     sb.from("runs").select("*").order("day", { ascending: false }).limit(30), sb.from("tasks").select("*"),
     sb.from("schedule").select("data").eq("id", "current").maybeSingle(), sb.from("heartbeat").select("*"),
+    sb.from("credits").select("*").gte("at", new Date(Date.now() - 45 * 86400000).toISOString()).order("at").limit(2000),
   ]);
-  const err = a.error || e.error || r.error || t.error || sc.error || hb.error;
+  const err = a.error || e.error || r.error || t.error || sc.error || hb.error || cr.error;
   if (err) throw err;
   S.heartbeat = Object.fromEntries(hb.data.map(x => [x.id, x]));
+  S.credits = cr.data;
   S.agents = new Map(a.data.map(x => [x.id, x])); S.events = e.data; S.runs = r.data; S.tasks = t.data;
   S.schedule = sc.data?.data || null;
   renderAll();
@@ -696,6 +752,7 @@ function subscribe() {
     .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => { if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); renderApprovals(); renderHealth(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "schedule" }, p => { if (p.new?.data) { S.schedule = p.new.data; renderSchedule(); } })
     .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); } })
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "credits" }, p => { S.credits.push(p.new); renderCredits(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, p => {
       if (p.eventType === "DELETE") S.tasks = S.tasks.filter(x => x.id !== p.old.id); else upsert(S.tasks, p.new, "id"); renderTasks(); })
     .subscribe(status => {
@@ -751,7 +808,15 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   S.heartbeat = { scheduler: { at: new Date(Date.now() - (alertsDemo ? 45 : 3) * 60000).toISOString(), info: { disk_free_gb: 142.6 } },
                   listener: { at: new Date().toISOString(), info: {} } };
   S.runs.push({ day: manilaDay() + "-pm", title: "Demo: In Peace I Will Lie Down and Sleep", format: "night_prayer",
-                stage: "awaiting_approval", links: {} });
+                stage: "awaiting_approval", links: {} },
+              { day: "2026-09-28", title: "Demo: The Lord Gave and Has Taken Away", format: "prayer", stage: "published", links: {},
+                platforms: { youtube: { state: alertsDemo ? "private" : "posted", url: "https://youtube.com/shorts/demo" },
+                             facebook: { state: "posted" }, instagram: { state: alertsDemo ? "retrying" : "posted" },
+                             tiktok: { state: "off", note: "not set up yet" } } });
+  S.runs[0].platforms = { youtube: { state: "scheduled" }, facebook: { state: "scheduled" }, instagram: { state: "scheduled" },
+                          tiktok: { state: "off", note: "not set up yet" } };
+  S.credits = [{ at: new Date(Date.now() - 2 * 86400000).toISOString(), used: 3994, total: 200000 },
+               { at: new Date().toISOString(), used: 8574, total: 200000 }];
   let i = 0;
   const stages =["planning", "writing", "writing", "writing", "narrating", "rendering", "awaiting_approval", "scheduled"];
   const tick = () => {
