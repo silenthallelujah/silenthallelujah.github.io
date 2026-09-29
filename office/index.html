@@ -60,6 +60,13 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .todo:first-of-type { border-top: 0; }
 .todo .t { font-weight: 600; }
 .todo .d { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.todo.compact { padding: 6px 0; font-size: 13px; }
+#mine, #claude { max-height: 260px; overflow: auto; }
+main > .col:first-child { display: flex; flex-direction: column; }
+main > .col:first-child > .card:last-child { flex: 1; display: flex; flex-direction: column; }
+#feed { flex: 1; max-height: none; min-height: 240px; contain: size; }   /* fills the column's height, scrolls inside */
+@media (max-width: 900px) { #feed { contain: none; max-height: 320px; flex: none; } }
+.seeboard { display: block; margin-top: 6px; font-size: 12px; }
 .num { font: 9px var(--pixel); color: var(--gold); margin-right: 6px; }
 .badge { font: 600 10px var(--body); padding: 1px 6px; border-radius: 3px; background: var(--panel2); color: var(--muted); margin-right: 6px; }
 details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted); }
@@ -158,6 +165,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
     <div class="card">
       <h2>CLAUDE'S QUEUE</h2>
       <div id="claude"></div>
+      <a class="seeboard" href="#board">Details on the project board ↓</a>
     </div>
     <div class="card">
       <h2>RECENT VIDEOS</h2>
@@ -387,9 +395,8 @@ function renderToday() {
 }
 function renderTasks() {
   const open = S.tasks.filter(t => t.status !== "done").sort((a, b) => a.num - b.num);
-  const row = t => `<div class="todo"><div class="t"><span class="num">#${t.num}</span><span class="badge">${esc(t.area)}</span>${esc(t.title)}
-      <span class="pill st-${t.status === "doing" ? "working" : t.status === "waiting" ? "waiting" : "idle"}">${esc(t.status)}</span></div>
-      <div class="d">${esc(t.detail)}</div></div>`;
+  const row = t => `<div class="todo compact" title="${esc(t.detail)}"><span class="num">#${t.num}</span>${esc(t.title)}
+      <span class="pill st-${t.status === "doing" ? "working" : t.status === "waiting" ? "waiting" : "idle"}">${esc(t.status)}</span></div>`;
   const mine = open.filter(t => t.owner === "You"), claude = open.filter(t => t.owner === "Claude");
   const boss = S.agents.get("boss");
   const extra = boss?.status === "waiting" ? `<div class="todo"><div class="t">${esc(boss.activity)} <span class="pill st-waiting">now</span></div></div>` : "";
@@ -559,7 +566,9 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
              { id: "d2", num: 2, title: "Demo task for Claude", detail: "Example only.", area: "Visuals", owner: "Claude", status: "doing", sort: 1 },
              ...Array.from({ length: 11 }, (_, k) => ({ id: "d" + (k + 3), num: k + 3, title: `Demo finished task ${k + 3}`, detail: "Example only.",
                area: "Infrastructure", owner: k % 2 ? "You" : "Claude", status: "done", done_on: `2026-09-${String(20 + (k % 9)).padStart(2, "0")}`, sort: k })),
-             { id: "d20", num: 20, title: "Demo backlog idea", detail: "Example only.", area: "Channel", owner: "You", status: "backlog", sort: 2 }];
+             { id: "d20", num: 20, title: "Demo backlog idea", detail: "Example only.", area: "Channel", owner: "You", status: "backlog", sort: 2 },
+             ...Array.from({ length: 6 }, (_, k) => ({ id: "q" + k, num: 21 + k, title: `Demo queued task ${21 + k} with a longer title`,
+               detail: "Example only. ".repeat(12), area: "Editorial", owner: "Claude", status: "backlog", sort: 3 + k }))];
   fetch("schedule.json").then(r => r.ok ? r.json() : null).then(j => { S.schedule = j; renderSchedule(); }).catch(() => {});
   let i = 0;
   const stages =["planning", "writing", "writing", "writing", "narrating", "rendering", "awaiting_approval", "scheduled"];
