@@ -52,6 +52,9 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .bubble { position: absolute; transform: translate(-50%, -100%); max-width: 34%; background: #fffdf5; color: #1b1a24; font: 600 clamp(8px, 1.1vw, 11px)/1.25 var(--body);
           padding: 4px 7px; border-radius: 6px; border: 2px solid #1b1a24; animation: pop .25s ease-out; }
 .bubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; margin-left: -5px; border: 5px solid transparent; border-top-color: #1b1a24; border-bottom: 0; }
+.seasonpill { margin-left: 10px; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--season, var(--line)); }
+header { border-bottom-color: var(--season, var(--line)) !important; }
+#stage { border-color: var(--season, var(--line)) !important; }
 #stage { container-type: inline-size; }         /* wall-screen text scales with the office, not the window */
 .tv { position: absolute; display: flex; align-items: center; gap: 3%; padding: 0 1.5%; overflow: hidden; color: #cfe8ff;
       font: 600 1.55cqw/1 var(--body); pointer-events: none; }
@@ -160,7 +163,8 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
   <div class="grow">
     <h1>SILENT HALLELUJAH OFFICE</h1>
     <div class="sub"><span id="live"></span><span id="livetxt">Connecting…</span>
-      <span id="pc" class="pcpill hide"><i></i><span></span></span></div>
+      <span id="pc" class="pcpill hide"><i></i><span></span></span>
+      <span id="season" class="seasonpill"></span></div>
   </div>
   <div><div id="clock"></div><button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
 </header>
@@ -562,6 +566,77 @@ function idleTick(t) {
   }
 }
 function poseOf(id) { const p = POSES.get(id); if (!p) return null; if (performance.now() > p.until) { POSES.delete(id); return null; } return p.pose; }
+// ---------- liturgical season (colour + seasonal touches) ----------
+function easter(y) {                            // Gregorian computus (Meeus/Jones/Butcher)
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+        g2 = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g2 + 15) % 30, i = Math.floor(c / 4), k = c % 4,
+        l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1;
+  return Date.UTC(y, month - 1, day);
+}
+const DAY_MS = 86400000;
+function season(dayStr) {
+  const t = Date.parse(dayStr + "T00:00:00Z"), y = +dayStr.slice(0, 4), E = easter(y);
+  const xmas = Date.UTC(y, 11, 25), xw = new Date(xmas).getUTCDay(), advent = xmas - (xw === 0 ? 28 : 21 + xw) * DAY_MS;
+  const jan6 = Date.UTC(y, 0, 6), baptism = jan6 + (7 - new Date(jan6).getUTCDay() || 7) * DAY_MS;
+  const sunday = new Date(t).getUTCDay() === 0;
+  if (t >= advent && t < xmas) {
+    const week = Math.floor((t - advent) / (7 * DAY_MS)) + 1;
+    return { key: "advent", name: week === 3 && sunday ? "Advent · Gaudete Sunday" : `Advent · week ${week}`, color: week === 3 && sunday ? "#e58fb0" : "#7b3fa0", week };
+  }
+  if (t >= xmas || t <= baptism) return { key: "christmas", name: "Christmas season", color: "#e9c46a" };
+  if (t >= E - 46 * DAY_MS && t < E) {
+    const laetare = t === E - 21 * DAY_MS, holy = t >= E - 7 * DAY_MS;
+    return { key: "lent", name: laetare ? "Lent · Laetare Sunday" : holy ? "Holy Week" : "Lent", color: laetare ? "#e58fb0" : "#6a2c91" };
+  }
+  if (t === E + 49 * DAY_MS) return { key: "pentecost", name: "Pentecost", color: "#d62828" };
+  if (t >= E && t < E + 49 * DAY_MS) return { key: "easter", name: "Easter season", color: "#f2c14e" };
+  return { key: "ordinary", name: "Ordinary Time", color: "#2d9d5c" };
+}
+function todaySeason() {                        // season, overridden by today's feast / martyr (from the feed)
+  const day = QS.get("sdate") || manilaDay(), s = { ...season(day) }, u = (S.upcoming?.days || []).find(d => d.date === day);   // &sdate= previews a season
+  const txt = `${u?.feast || ""} ${u?.liturgical || ""}`, saint = (u?.saints || [])[0] || "";
+  if (/solemnity|feast/i.test(txt) && s.key === "ordinary") Object.assign(s, { key: "feast", name: (u.feast || u.liturgical).replace(/\s*-\s*(Solemnity|Feast)$/i, "") + " · feast", color: "#e9c46a" });
+  else if (/martyr/i.test(saint) && s.key === "ordinary") Object.assign(s, { key: "martyr", name: "Ordinary Time · martyr's memorial", color: "#c1121f" });
+  return s;
+}
+function drawSeason(t) {
+  const s = todaySeason();
+  // hanging banner on the newsroom wall, in the colour of the day
+  px(187, 1, 16, 1, "#5c3d2e"); px(188, 2, 14, 15, s.color); px(188, 17, 3, 2, s.color); px(193, 17, 4, 3, s.color); px(199, 17, 3, 2, s.color);
+  px(194, 5, 2, 9, "#fdfdfd"); px(191, 7, 8, 2, "#fdfdfd");
+  if (s.key === "advent") {                     // Advent wreath on the front-desk counter: one candle per week
+    const x = 207, y = 250;
+    px(x - 4, y + 8, 30, 3, "#8b5a2b"); px(x - 3, y + 11, 2, 12, "#6f4518"); px(x + 23, y + 11, 2, 12, "#6f4518");   // side table
+    px(x, y + 5, 22, 3, "#2d6a4f"); px(x + 2, y + 4, 18, 2, "#40916c");
+    ["#7b3fa0", "#7b3fa0", "#e58fb0", "#7b3fa0"].forEach((c, i) => {
+      px(x + 2 + i * 5, y - 2, 3, 6, c);
+      if (i < s.week) px(x + 3 + i * 5, y - 4 - ((t >> (7 + i)) & 1), 1, 2, "#ffb703");
+    });
+  }
+  if (s.key === "christmas") {                  // crib in the newsroom corner + tree in the Boss's office
+    px(8, 100, 30, 3, "#8d6e63"); px(10, 88, 26, 1, "#6d4c41"); px(9, 88, 2, 12, "#6d4c41"); px(35, 88, 2, 12, "#6d4c41");
+    px(19, 94, 8, 5, "#e9c46a"); px(21, 92, 4, 3, "#f5d0a9"); px(13, 91, 4, 9, "#3a6ea5"); px(29, 91, 4, 9, "#8d6e63");
+    px(21, 83, 3, 3, "#ffd60a");
+    for (let i = 0; i < 6; i++) px(430 - i * 2, 96 + i * 5, 6 + i * 4, 5, "#2d6a4f");
+    px(436, 126, 4, 6, "#6b4226"); px(437, 92, 2, 3, "#ffd60a");
+    [[432, 104], [440, 112], [428, 118], [444, 122]].forEach(([a, b], i) => px(a, b, 2, 2, ((t >> 8) + i) & 1 ? "#e63946" : "#f2c14e"));
+  }
+  if (s.key === "easter" || s.key === "pentecost") {   // lilies at Our Lady + paschal candle
+    [[150, 228], [178, 226]].forEach(([a, b]) => { px(a + 2, b, 1, 10, "#2d6a4f"); px(a, b - 3, 5, 3, "#fdfdfd"); px(a + 2, b - 2, 1, 1, "#ffd60a"); });
+    px(186, 214, 3, 26, "#fdfbf2"); px(185, 240, 5, 3, "#c9a227"); px(187, 211 - ((t >> 8) & 1), 1, 3, "#ffb703"); px(186, 222, 3, 1, "#c1121f");
+  }
+  if (s.key === "feast") {                      // flowers for Our Lady
+    [[150, 232], [156, 230], [181, 231]].forEach(([a, b], i) => { px(a + 1, b, 1, 8, "#2d6a4f"); px(a, b - 2, 3, 3, ["#ff8fab", "#fdfdfd", "#ffd60a"][i]); });
+  }
+  return s;
+}
+function paintSeason() {                        // header badge + accent colour
+  const s = todaySeason(), el = document.getElementById("season");
+  document.documentElement.style.setProperty("--season", s.color);
+  if (el) { el.textContent = s.name; el.style.borderColor = s.color; el.title = "Liturgical colour of the day"; }
+}
+
 // ---------- emotes (what each agent is doing), pass/fail pops, confetti when a video goes live ----------
 function drawEmote(id, x, y, t) {                // 9x9 icon above a working agent, bobbing
   const b = (t >> 9) & 1, X = x + 5, Y = y - 13 + b;
@@ -705,7 +780,7 @@ function draw(t) {
   const night = !FORCE_DAY && (manilaHour() < 6 || manilaHour() >= 18);
   g.clearRect(0, 0, W, H);
   ROOMS.forEach(r => drawRoom(r, night));
-  drawWalls(); drawDecor(t);
+  drawWalls(); drawDecor(t); drawSeason(t);
   const dt = Math.min(100, t - (draw.last || t)); draw.last = t;
   idleTick(t);
   const catMoving = catTick(dt);
@@ -1065,7 +1140,7 @@ function renderSchedule() {
     <div class="muted" style="font-size:11.5px;margin-top:4px">From the Evangelizo feed, refreshed at each 10:00 AM run (last ${ago(S.upcoming.generated)}).</div>` : ""}
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
-function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderAccounts(); renderScreens(); }
+function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderAccounts(); renderScreens(); paintSeason(); }
 
 // ---------- data ----------
 async function load() {
@@ -1105,7 +1180,7 @@ function subscribe() {
       if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); renderApprovals(); renderHealth(); renderScreens(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "schedule" }, p => {
       if (p.new?.id === "upcoming") S.upcoming = p.new.data; else if (p.new?.data) S.schedule = p.new.data;
-      renderSchedule(); renderScreens();
+      renderSchedule(); renderScreens(); paintSeason();
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); renderAccounts(); } })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "credits" }, p => { S.credits.push(p.new); renderCredits(); })
