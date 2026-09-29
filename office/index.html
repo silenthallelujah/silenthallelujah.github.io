@@ -77,6 +77,8 @@ header { border-bottom-color: var(--season, var(--line)) !important; }
 .wb { position: absolute; color: #1b1a24; font: 700 0.92cqw/1.12 var(--body); padding: 0.1cqw 0.5cqw; overflow: hidden;
       pointer-events: none; white-space: nowrap; }
 .wb b { color: #c1121f; }
+.lbl { position: absolute; transform: translateX(-50%); font: 600 0.95cqw/1 var(--body); color: #fffdf5; background: rgba(10,10,18,.55);
+       padding: 0.2cqw 0.45cqw; border-radius: 3px; white-space: nowrap; pointer-events: none; }
 .room { position: absolute; font: clamp(5px, .9vw, 8px)/1 var(--pixel); color: rgba(255,255,255,.75); text-shadow: 1px 1px 0 #000; }
 @keyframes pop { from { transform: translate(-50%, -80%) scale(.6); opacity: 0; } }
 #detail { margin-top: 12px; min-height: 64px; }
@@ -345,6 +347,24 @@ function drawClock(cx, cy) {                    // real PHT time
   line(cx, cy, cx + Math.round(Math.sin(ha) * 4), cy - Math.round(Math.cos(ha) * 4), "#111");
   line(cx, cy, cx + Math.round(Math.sin(ma) * 6), cy - Math.round(Math.cos(ma) * 6), "#c1121f");
 }
+function drawOurLady(x, y, t) {                 // statue of Our Lady: crown of stars, blue mantle, hands joined; candles + flowers
+  [[2, 3], [5, 1], [9, 0], [13, 0], [17, 1], [20, 3]].forEach(([a, b]) => px(x + a, y + b, 2, 2, "#f2c14e"));   // crown of stars
+  px(x + 5, y + 5, 14, 8, "#2f5aa8"); px(x + 4, y + 9, 16, 4, "#2f5aa8");              // mantle over the head
+  px(x + 8, y + 7, 8, 8, "#f5d0a9"); px(x + 7, y + 7, 1, 8, "#fdfdfd"); px(x + 16, y + 7, 1, 8, "#fdfdfd");   // face + white veil edge
+  px(x + 9, y + 10, 2, 1, "#3a2a22"); px(x + 13, y + 10, 2, 1, "#3a2a22"); px(x + 11, y + 13, 2, 1, "#c9826b");
+  px(x + 3, y + 15, 18, 30, "#2f5aa8");                                                // mantle
+  px(x + 8, y + 15, 8, 30, "#fdfdfd"); px(x + 7, y + 15, 1, 30, "#f2c14e"); px(x + 16, y + 15, 1, 30, "#f2c14e");  // gown + gold trim
+  px(x + 8, y + 27, 8, 1, "#8ecae6");                                                  // sash
+  px(x + 9, y + 18, 6, 5, "#fdfdfd"); px(x + 10, y + 19, 4, 4, "#f5d0a9"); px(x + 11, y + 18, 2, 2, "#f5d0a9");   // hands joined in prayer
+  px(x + 10, y + 45, 4, 2, "#f5d0a9");                                                 // feet
+  px(x, y + 47, 24, 3, "#adb5bd"); px(x + 1, y + 50, 22, 9, "#8d99ae"); px(x + 1, y + 50, 22, 1, "#6c757d");   // pedestal
+  px(x - 3, y + 60, 30, 3, "#6f4518");                                                 // candle stand in front
+  for (let i = 0; i < 3; i++) {
+    px(x + 1 + i * 5, y + 53, 3, 7, "#fffdf5");
+    px(x + 2 + i * 5, y + 50 - ((t >> (7 + i)) & 1), 1, 3, ((t >> (6 + i)) & 1) ? "#ffb703" : "#ffd166");
+  }
+  px(x + 18, y + 54, 6, 6, "#a8dadc"); px(x + 17, y + 50, 3, 4, "#ff8fab"); px(x + 21, y + 49, 3, 4, "#fdfdfd"); px(x + 19, y + 47, 3, 3, "#ffd60a");  // vase of flowers
+}
 function drawDecor(t) {
   // NEWSROOM: stained glass, crucifix, whiteboard, bookshelf, water cooler, coffee machine, plant
   px(117, 1, 28, 19, "#2b2b2b");
@@ -355,8 +375,14 @@ function drawDecor(t) {
   px(166, 7, 2, 7, "#f5d0a9"); px(163, 7, 8, 1, "#f5d0a9"); px(166, 4, 2, 2, "#f5d0a9"); px(165, 3, 4, 1, "#f2c14e");
   px(224, 2, 66, 17, "#bfbfbf"); px(225, 3, 64, 15, "#f7f7f7"); px(283, 18, 6, 1, "#e63946"); px(276, 18, 5, 1, "#1d4e89"); // whiteboard (text overlay)
   drawShelf(3, 24, 22, 45);
-  px(271, 104, 12, 3, "#dfe7fd"); px(271, 90, 12, 14, "#a8dadc"); px(273, 92, 8, 10, "#90caf9"); px(271, 107, 12, 14, "#e5e5e5"); // cooler
-  px(248, 110, 14, 11, "#495057"); px(250, 112, 10, 4, "#212529"); px(252, 117, 5, 3, "#fff"); px(246, 121, 18, 13, "#6c757d"); // coffee
+  // break corner under the whiteboard: coffee machine (pot + cups) and water cooler (big blue bottle + tap)
+  px(250, 42, 22, 16, "#8b5a2b"); px(251, 43, 20, 1, "#a9713f"); px(260, 47, 2, 2, "#5c3a14");              // cabinet
+  px(252, 26, 16, 16, "#343a40"); px(253, 27, 14, 4, "#212529"); px(255, 28, 3, 2, "#e63946");               // machine + red light
+  px(256, 32, 8, 1, "#adb5bd"); px(256, 34, 8, 7, "#495057"); px(257, 36, 6, 4, "#6f1d1b"); px(262, 35, 3, 1, "#212529"); // spout + coffee pot
+  px(266, 38, 4, 4, "#fdfdfd"); px(269, 39, 1, 2, "#fdfdfd");                                                  // cup
+  px(280, 24, 12, 13, "#4ea8de"); px(281, 25, 10, 11, "#90e0ef"); px(283, 26, 3, 7, "#caf0f8"); px(283, 22, 6, 2, "#4ea8de"); // bottle
+  px(279, 37, 14, 21, "#e9ecef"); px(279, 37, 14, 1, "#ced4da"); px(283, 42, 2, 3, "#1d4e89"); px(287, 42, 2, 3, "#e63946");  // cooler body + taps
+  px(282, 50, 8, 1, "#adb5bd");
   drawPlant(8, 128, true);
   // BOSS: framed channel logo, bookshelf, rug, plant
   px(401, 2, 24, 17, "#c9a227"); px(403, 4, 20, 13, "#1d3557"); disc(413, 10, 5, "#2b4a7a");
@@ -364,21 +390,13 @@ function drawDecor(t) {
   drawShelf(452, 22, 24, 56);
   px(352, 120, 96, 30, "#9d4b5a"); px(355, 123, 90, 24, "#b35c6b"); px(360, 128, 80, 14, "#c97b86");
   drawPlant(306, 118, true);
-  // STUDIO: acoustic foam, ON AIR, Our Lady statue with candles
+  drawOurLady(320, 24, t);                                                            // Boss's office, top-left corner
+  // STUDIO: acoustic foam, ON AIR, plant
   for (let i = 0; i < 9; i++) for (let j = 0; j < 2; j++) px(6 + i * 9, 165 + j * 8, 8, 7, (i + j) & 1 ? "#39424e" : "#2e3540");
   const onAir = S.agents.get("narrator")?.status === "working";
   px(92, 164, 34, 12, "#111"); px(94, 166, 30, 8, onAir && (t >> 9) & 1 ? "#ff3b3b" : "#5a1a1a");
   px(98, 168, 3, 4, "#ffd6d6"); px(103, 168, 3, 4, "#ffd6d6"); px(110, 168, 3, 4, "#ffd6d6"); px(115, 168, 5, 4, "#ffd6d6");
-  px(158, 240, 22, 10, "#8d99ae"); px(160, 238, 18, 2, "#adb5bd");                   // pedestal
-  px(163, 198, 12, 2, "#f2c14e"); px(162, 199, 1, 2, "#f2c14e"); px(175, 199, 1, 2, "#f2c14e"); // halo
-  px(162, 202, 14, 10, "#f1f1f1"); px(165, 204, 8, 6, "#f5d0a9");                    // veil + face
-  px(166, 206, 1, 1, "#555"); px(170, 206, 1, 1, "#555");
-  px(161, 211, 16, 27, "#3a6ea5"); px(164, 213, 10, 25, "#f1f1f1"); px(167, 218, 4, 4, "#f5d0a9"); // mantle, hands
-  px(144, 240, 12, 3, "#6f4518");
-  for (let i = 0; i < 3; i++) {
-    px(145 + i * 4, 233, 2, 7, "#fffdf5");
-    px(145 + i * 4, 230 + ((t >> (7 + i)) & 1), 2, 3, ((t >> (6 + i)) & 1) ? "#ffb703" : "#ffd166");
-  }
+  drawPlant(166, 250, true);
   // FRONT DESK: clock (PHT), bulletin board, plant
   drawClock(305, 172);
   px(234, 165, 36, 15, "#a47148"); px(236, 167, 8, 6, "#fff3b0"); px(246, 168, 9, 5, "#caf0f8"); px(257, 166, 10, 7, "#ffccd5");
@@ -555,7 +573,7 @@ function walk(from, to) {                      // hand-off: carry the paper to t
   cue("handoff");
 }
 // ---------- idle life: coffee / water breaks, stretching, reading; the office cat ----------
-const BREAK_SPOTS = [[234, 104], [256, 102], [279, 104]];      // coffee machine + water cooler
+const BREAK_SPOTS = [[246, 50], [262, 52], [277, 52]];         // in front of the coffee machine + water cooler
 const POSES = new Map(), NEXT_IDLE = new Map();
 const QS = new URLSearchParams(location.search), FORCE_DAY = QS.has("day"), IS_DEMO = QS.has("demo");   // &day previews daytime
 function daytime() { if (FORCE_DAY) return true; const h = manilaHourF(); return h >= 6 && h < 22; }
@@ -668,11 +686,11 @@ function drawSeason(t) {
     [[432, 104], [440, 112], [428, 118], [444, 122]].forEach(([a, b], i) => px(a, b, 2, 2, ((t >> 8) + i) & 1 ? "#e63946" : "#f2c14e"));
   }
   if (s.key === "easter" || s.key === "pentecost") {   // lilies at Our Lady + paschal candle
-    [[150, 228], [178, 226]].forEach(([a, b]) => { px(a + 2, b, 1, 10, "#2d6a4f"); px(a, b - 3, 5, 3, "#fdfdfd"); px(a + 2, b - 2, 1, 1, "#ffd60a"); });
-    px(186, 214, 3, 26, "#fdfbf2"); px(185, 240, 5, 3, "#c9a227"); px(187, 211 - ((t >> 8) & 1), 1, 3, "#ffb703"); px(186, 222, 3, 1, "#c1121f");
+    [[309, 70], [347, 72]].forEach(([a, b]) => { px(a + 2, b, 1, 12, "#2d6a4f"); px(a, b - 3, 5, 3, "#fdfdfd"); px(a + 2, b - 2, 1, 1, "#ffd60a"); });
+    px(356, 52, 3, 28, "#fdfbf2"); px(355, 80, 5, 3, "#c9a227"); px(357, 49 - ((t >> 8) & 1), 1, 3, "#ffb703"); px(356, 62, 3, 1, "#c1121f");
   }
   if (s.key === "feast") {                      // flowers for Our Lady
-    [[150, 232], [156, 230], [181, 231]].forEach(([a, b], i) => { px(a + 1, b, 1, 8, "#2d6a4f"); px(a, b - 2, 3, 3, ["#ff8fab", "#fdfdfd", "#ffd60a"][i]); });
+    [[309, 74], [313, 72], [348, 74]].forEach(([a, b], i) => { px(a + 1, b, 1, 9, "#2d6a4f"); px(a, b - 2, 3, 3, ["#ff8fab", "#fdfdfd", "#ffd60a"][i]); });
   }
   return s;
 }
@@ -866,6 +884,10 @@ tvEl.className = "tv"; wbEl.className = "wb";
 Object.assign(tvEl.style, { left: pct(336, W), top: pct(165, H), width: pct(134, W), height: pct(14, H) });
 Object.assign(wbEl.style, { left: pct(226, W), top: pct(3, H), width: pct(62, W), height: pct(15, H) });
 overlay.append(tvEl, wbEl);
+[["Our Lady", 332, 89], ["☕ Coffee", 258, 60], ["💧 Water", 289, 60]].forEach(([text, x, y]) => {   // object labels
+  const d = document.createElement("div"); d.className = "lbl"; d.textContent = text;
+  d.style.left = pct(x, W); d.style.top = pct(y, H); overlay.append(d);
+});
 const TV_ORDER = [["youtube", "YT"], ["facebook", "FB"], ["instagram", "IG"], ["tiktok", "TT"]];
 const TV_COLOR = { posted: "#52d88a", scheduled: "#4f9cff", pending: "#f2c14e", retrying: "#f2c14e", private: "#ff5c5c", failed: "#ff5c5c", off: "#555" };
 function renderScreens() {
