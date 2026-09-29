@@ -388,10 +388,15 @@ function renderToday() {
   const idx = run ? STAGE_INDEX[run.stage] ?? 0 : -1;
   title.innerHTML = run ? `<b>${esc(run.title || "Untitled yet")}</b> <span class="badge">${esc(run.format || "")}</span>`
     : (manilaHour() < 10 ? "The team starts at 10:00." : "No run recorded for today yet.");
+  const pm = S.runs.find(r => r.day === day + "-pm");
+  const STAGE_LABEL = { planning: "planning", writing: "writing", revising: "being revised", narrating: "recording",
+    rendering: "rendering", awaiting_approval: "waiting for your approval", approved: "approved", rejected: "rejected",
+    scheduled: "scheduled", published: "live" };
   document.getElementById("steps").innerHTML = STEPS.map(([k, label, who], i) => {
     const cls = run?.stage === "rejected" && i === 4 ? "bad" : i < idx ? "done" : i === idx ? "now" : "";
     return `<li class="${cls}"><b>${i < idx ? "✓" : ""}</b><span>${label} <span class="muted">· ${who}</span></span></li>`;
-  }).join("");
+  }).join("") + (pm ? `<li class="${pm.stage === "published" ? "done" : "now"}"><b>🌙</b><span>Evening: <b>${esc(pm.title || "untitled")}</b>
+      <span class="muted">· ${esc(STAGE_LABEL[pm.stage] || pm.stage)}</span></span></li>` : "");
 }
 function renderTasks() {
   const open = S.tasks.filter(t => t.status !== "done").sort((a, b) => a.num - b.num);
@@ -467,6 +472,16 @@ function renderDetail() {
 }
 function select(id) { S.selected = id; renderRoster(); }
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const clock12 = (h, m) => `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+function etPht(hhmm, day = manilaDay()) {      // "06:00" -> "6:00 AM ET (6:00 PM PHT)"; follows US daylight saving
+  const [h, m] = hhmm.split(":").map(Number);
+  let utc = Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10), h + 4, m);   // EDT guess
+  const ny = +new Intl.DateTimeFormat("en-GB", { timeZone: "America/New_York", hour: "2-digit", hour12: false }).format(new Date(utc));
+  if (ny % 24 !== h) utc += 3600000;                                                              // EST: one hour later
+  const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", hour12: false })
+    .format(new Date(utc)).split(":").map(Number);
+  return `${clock12(h, m)} ET (${clock12(p[0] % 24, p[1])} PHT)`;
+}
 function weekDates() {                          // Mon..Sun of this week in Manila, as YYYY-MM-DD
   const d = new Date(manilaDay() + "T00:00:00Z"), wd = (d.getUTCDay() + 6) % 7;
   return DAYS.map((_, i) => new Date(d.getTime() + (i - wd) * 86400000).toISOString().slice(0, 10));
@@ -491,7 +506,7 @@ function renderSchedule() {
   const et = sc.go_live_et || {};
   const group = slot => Object.values(F).filter(f => f.slot === slot).map(f => `<p><b>${esc(f.label)}</b> - ${esc(f.summary)}</p>`).join("");
   body.classList.remove("muted");
-  body.innerHTML = `<table class="sgrid"><thead><tr><th>DAY</th><th>MORNING · ${esc(et.morning || "06:00")} ET</th><th>EVENING · ${esc(et.evening || "18:00")} ET</th></tr></thead>
+  body.innerHTML = `<table class="sgrid"><thead><tr><th>DAY</th><th>MORNING · ${etPht(et.morning || "06:00")}</th><th>EVENING · ${etPht(et.evening || "18:00")}</th></tr></thead>
     <tbody>${rows}</tbody></table>
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
@@ -592,7 +607,7 @@ else {
 }
 
 setInterval(() => {
-  document.getElementById("clock").textContent = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", weekday: "short", hour: "2-digit", minute: "2-digit" }).format(new Date()) + " PHT";
+  document.getElementById("clock").textContent = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", weekday: "short", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date()) + " PHT";
   if (S.selected) renderDetail();
 }, 1000);
 setInterval(() => { renderToday(); renderRoster(); }, 60000);          // staleness + day rollover
