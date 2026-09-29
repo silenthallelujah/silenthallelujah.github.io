@@ -466,10 +466,18 @@ const soundBtn = document.getElementById("sound");
 const paintSound = () => { soundBtn.textContent = SOUND ? "🔊" : "🔇"; soundBtn.title = SOUND ? "Sound cues on - click to mute" : "Sound cues off - click to turn on"; };
 soundBtn.onclick = () => { SOUND = !SOUND; try { localStorage.setItem("office-sound", SOUND ? "on" : "off"); } catch {} paintSound(); if (SOUND) cue("handoff"); };
 paintSound();
-function cue(kind) {                          // tiny square-wave blips: hand-off / needs approval / problem
+function cue(kind) {                          // tiny square-wave blips: hand-off / needs approval / problem / live!
   if (!SOUND) return;
   try {
     actx ||= new AudioContext();
+    if (kind === "celebrate") {                // little fanfare: C-E-G-C
+      [523, 659, 784, 1047].forEach((f, i) => {
+        const o = actx.createOscillator(), gn = actx.createGain(), at = actx.currentTime + i * 0.12;
+        o.type = "square"; o.frequency.setValueAtTime(f, at); gn.gain.setValueAtTime(0.03, at); gn.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
+        o.connect(gn).connect(actx.destination); o.start(at); o.stop(at + 0.23);
+      });
+      return;
+    }
     const [f0, f1, len] = { handoff: [660, 880, 0.18], approve: [523, 1047, 0.45], error: [240, 150, 0.5] }[kind] || [600, 600, 0.2];
     const o = actx.createOscillator(), gn = actx.createGain(), now = actx.currentTime;
     o.type = "square"; o.frequency.setValueAtTime(f0, now); o.frequency.linearRampToValueAtTime(f1, now + len * 0.6);
@@ -547,6 +555,61 @@ function idleTick(t) {
   }
 }
 function poseOf(id) { const p = POSES.get(id); if (!p) return null; if (performance.now() > p.until) { POSES.delete(id); return null; } return p.pose; }
+// ---------- emotes (what each agent is doing), pass/fail pops, confetti when a video goes live ----------
+function drawEmote(id, x, y, t) {                // 9x9 icon above a working agent, bobbing
+  const b = (t >> 9) & 1, X = x + 5, Y = y - 13 + b;
+  px(X - 2, Y - 2, 13, 13, "rgba(255,253,245,.92)"); px(X - 1, Y - 3, 11, 1, "rgba(255,253,245,.92)"); px(X - 1, Y + 11, 11, 1, "rgba(255,253,245,.92)");
+  const E = {
+    planner: () => { disc(X + 4, Y + 3, 3, "#ffd60a"); px(X + 3, Y + 7, 3, 2, "#8d99ae"); px(X + 4, Y + 2, 1, 2, "#fff"); },
+    writer: () => { for (let i = 0; i < 6; i++) px(X + 1 + i, Y + 7 - i, 2, 2, "#f4a261"); px(X, Y + 7, 2, 2, "#333"); px(X + 7, Y, 2, 2, "#e5989b"); },
+    checker: () => { px(X + 3, Y, 3, 9, "#c9a227"); px(X, Y + 2, 9, 3, "#c9a227"); },
+    editor: () => { for (let i = 0; i < 6; i++) px(X + 1 + i, Y + 7 - i, 2, 2, "#c1121f"); px(X, Y + 7, 2, 2, "#333"); },
+    producer: () => { px(X + 1, Y + 1, 7, 8, "#8b5a2b"); px(X + 2, Y + 2, 5, 6, "#fff"); px(X + 3, Y, 3, 2, "#aaa"); px(X + 3, Y + 4, 3, 1, "#999"); },
+    narrator: () => { const o = (t >> 8) & 1; px(X + 1, Y + 5 - o, 3, 3, "#1d3557"); px(X + 3, Y - o, 1, 6, "#1d3557"); px(X + 6, Y + 6, 3, 3, "#1d3557"); px(X + 8, Y + 1, 1, 6, "#1d3557"); px(X + 3, Y - o, 6, 1, "#1d3557"); },
+    renderer: () => { const r = (t >> 8) & 1; px(X + 2, Y + 2, 5, 5, "#6c757d"); px(X + 3, Y + 3, 3, 3, "#fff");
+                      (r ? [[4, 0], [4, 8], [0, 4], [8, 4]] : [[1, 1], [7, 1], [1, 7], [7, 7]]).forEach(([a, c]) => px(X + a, Y + c, 1, 1, "#6c757d")); },
+    clerk: () => { px(X, Y + 4, 9, 2, "#2aabee"); px(X + 2, Y + 2, 6, 2, "#2aabee"); px(X + 5, Y, 3, 2, "#2aabee"); px(X + 3, Y + 6, 3, 2, "#1d7fb5"); },
+    social: () => { px(X + 1, Y + 1, 3, 3, "#e63946"); px(X + 5, Y + 1, 3, 3, "#e63946"); px(X, Y + 2, 9, 3, "#e63946"); px(X + 1, Y + 5, 7, 2, "#e63946"); px(X + 3, Y + 7, 3, 1, "#e63946"); px(X + 4, Y + 8, 1, 1, "#e63946"); },
+  };
+  (E[id] || (() => {}))();
+}
+const POPS = new Map();                           // id -> { kind: "pass" | "back", until }
+function pop(id, kind) { if (CAST[id]) POPS.set(id, { kind, until: performance.now() + 2600 }); }
+function drawPop(id, x, y) {
+  const p = POPS.get(id);
+  if (!p) return;
+  if (performance.now() > p.until) { POPS.delete(id); return; }
+  const X = x + 20, Y = y - 6;
+  disc(X + 4, Y + 4, 6, p.kind === "pass" ? "#2d9d5c" : "#c1121f");
+  if (p.kind === "pass") { px(X + 1, Y + 4, 2, 2, "#fff"); px(X + 3, Y + 6, 2, 2, "#fff"); for (let i = 0; i < 4; i++) px(X + 5 + i, Y + 5 - i, 2, 2, "#fff"); }
+  else for (let i = 0; i < 6; i++) { px(X + 1 + i, Y + 1 + i, 2, 2, "#fff"); px(X + 7 - i, Y + 1 + i, 2, 2, "#fff"); }
+}
+function popFromEvent(e) {                        // green check when work passes, red cross when it goes back
+  const m = (e.message || "").toLowerCase();
+  if (e.kind !== "handoff") return;
+  if (/back|asked wren|changes/.test(m)) pop(e.agent, "back");
+  else if (/ok|approved|done|ready|recorded|rendered/.test(m)) pop(e.agent, "pass");
+}
+const CONFETTI = [];
+let CHEER_UNTIL = 0;
+function celebrate() {
+  const cols = ["#f2c14e", "#e63946", "#4f8cff", "#52b788", "#ff8fab", "#fdfdfd"];
+  for (let i = 0; i < 160; i++)
+    CONFETTI.push({ x: Math.random() * W, y: -Math.random() * 60, vx: (Math.random() - 0.5) * 0.05, vy: 0.03 + Math.random() * 0.05,
+                    c: cols[i % cols.length], w: 3 + (i % 3), life: 5000 + Math.random() * 2000 });
+  CHEER_UNTIL = performance.now() + 4500;
+  cue("celebrate");
+}
+function drawConfetti(dt) {
+  for (let i = CONFETTI.length - 1; i >= 0; i--) {
+    const p = CONFETTI[i];
+    p.x += p.vx * dt + Math.sin((p.y + i) / 9) * 0.3; p.y += p.vy * dt; p.life -= dt;
+    if (p.life <= 0 || p.y > H) { CONFETTI.splice(i, 1); continue; }
+    const flip = ((p.y + i * 7) >> 3) & 1;                                      // tumbling: wide / tall
+    px(p.x, p.y, flip ? p.w : 2, flip ? 2 : p.w, p.c);
+  }
+}
+const cheering = () => performance.now() < CHEER_UNTIL;
 const CAT = { x: 200, y: 120, tx: 200, ty: 120, dir: 1, rest: 0, room: "NEWSROOM" };
 const CAT_AREAS = { NEWSROOM: [20, 100, 250, 140], BOSS: [320, 100, 440, 140] };
 function catTick(dt) {
@@ -642,20 +705,27 @@ function draw(t) {
   if (CAT.y < 96) drawCat(t, catMoving);                                          // behind the desks when "up" the room
   for (const id of Object.keys(CAST)) {
     const c = CAST[id], st = effStatus(S.agents.get(id)), p = agentPos(id, t);
-    if (id === "boss") { drawPerson(c, p.x, p.y, st, t, false); drawBossDesk(c.x, c.y); continue; }
+    const cheer = cheering();
+    if (id === "boss") {
+      drawPerson(c, p.x, p.y, cheer ? "walk" : st, t, false, cheer ? "stretch" : null); drawBossDesk(c.x, c.y); drawPop(id, p.x, p.y); continue;
+    }
     if (p.away || p.walking) {
       drawDesk(c.x, c.y, c.prop, "idle", t);
       drawPerson(c, p.x, p.y, "walk", t, p.walking, p.pose);
       if (p.item === "paper") { px(p.x + 13, p.y + 14, 7, 9, "#fffdf5"); px(p.x + 14, p.y + 16, 5, 1, "#999"); px(p.x + 14, p.y + 18, 5, 1, "#999"); px(p.x + 14, p.y + 20, 4, 1, "#999"); }
       if (p.item === "cup" && !p.pose) { px(p.x + 16, p.y + 19, 4, 5, "#fdfdfd"); px(p.x + 20, p.y + 20, 1, 2, "#fdfdfd"); }
+      drawPop(id, p.x, p.y);
       continue;
     }
-    const pose = st === "idle" && daytime() ? poseOf(id) : null;
+    const pose = cheer ? "stretch" : st === "idle" && daytime() ? poseOf(id) : null;
     drawPerson(c, p.x, p.y, pose ? "walk" : st, t, false, pose);
     drawDesk(c.x, c.y, c.prop, st, t);
+    if (st === "working" && !pose && id !== "producer") drawEmote(id, p.x, p.y, t);
+    drawPop(id, p.x, p.y);
   }
   if (CAT.y >= 96) drawCat(t, catMoving);
   drawLighting(t);
+  drawConfetti(dt);
   placeOverlay(t);
   requestAnimationFrame(draw);
 }
@@ -686,7 +756,7 @@ function placeOverlay(t) {
       if (b.textContent !== msg.text) b.textContent = msg.text;
       const half = b.offsetWidth / 2 + 4, full = overlay.clientWidth;                 // keep the bubble inside the office
       const cx = Math.min(Math.max((p.x + 9) / W * full, half), full - half);
-      b.classList.remove("hide"); b.style.left = `${cx}px`; b.style.top = pct(p.y - 6, H);
+      b.classList.remove("hide"); b.style.left = `${cx}px`; b.style.top = pct(p.y - 17, H);
     } else b.classList.add("hide");
   }
 }
@@ -996,10 +1066,13 @@ function subscribe() {
     })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "events" }, p => {
       S.events.unshift(p.new); say(p.new.agent, p.new.message); renderFeed();
-      if (p.new.kind === "handoff") walk(p.new.agent, handoffTarget(p.new));
+      if (p.new.kind === "handoff") { walk(p.new.agent, handoffTarget(p.new)); popFromEvent(p.new); }
       if (p.new.kind === "error") cue("error");
     })
-    .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => { if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); renderApprovals(); renderHealth(); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => {
+      const before = S.runs.find(r => r.day === p.new?.day)?.stage;
+      if (p.new?.stage === "published" && before && before !== "published" && !/^test-/.test(p.new.day)) celebrate();   // a video just went live
+      if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); renderApprovals(); renderHealth(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "schedule" }, p => {
       if (p.new?.id === "upcoming") S.upcoming = p.new.data; else if (p.new?.data) S.schedule = p.new.data;
       renderSchedule();
@@ -1092,7 +1165,11 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
     if (alertsDemo) Object.assign(S.agents.get("social"), { status: "error", activity: "Demo: Instagram failed - retrying next run" });
     S.runs[0].stage = stages[i % stages.length];
     S.events.unshift({ at: now(), agent: id, kind: "start", message: act });
-    if (i > 0) walk(script[(i - 1) % script.length][0], id);            // preview the hand-off walk
+    if (i > 0) {                                                            // preview the hand-off walk + pass pop
+      const prevId = script[(i - 1) % script.length][0];
+      walk(prevId, id); pop(prevId, "pass");
+    }
+    if (id === "social") setTimeout(celebrate, 2500);                       // preview the go-live celebration
     say(id, act); i++; renderAll();
   };
   tick(); setInterval(tick, 4000);
