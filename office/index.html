@@ -477,22 +477,55 @@ function handoffTarget(e) {
   if (e.agent === "clerk") return m.includes("sofia") ? "social" : m.includes("wren") ? "writer" : "boss";
   return NEXT[e.agent] || null;
 }
-const WALKS = new Map(), WALK_MS = 1700, HOLD_MS = 700;
+// Walks go room to room through the doorways. Points are a character's top-left; one pair per door (each side).
+const ROOM_OF = { planner: "NEWSROOM", writer: "NEWSROOM", checker: "NEWSROOM", editor: "NEWSROOM", producer: "NEWSROOM",
+                  boss: "BOSS", narrator: "STUDIO", renderer: "STUDIO", clerk: "FRONT DESK", social: "SOCIAL" };
+const DOORS = [
+  ["NEWSROOM", "BOSS", [276, 86], [304, 86]],
+  ["NEWSROOM", "STUDIO", [94, 124], [94, 168]],
+  ["NEWSROOM", "FRONT DESK", [244, 124], [244, 168]],
+  ["BOSS", "SOCIAL", [397, 124], [397, 168]],
+];
+function doorRoute(from, to) {                 // waypoints between two rooms (breadth-first over the doors)
+  const prev = { [from]: null }, q = [from];
+  while (q.length) {
+    const r = q.shift();
+    if (r === to) break;
+    for (const [a, b, pa, pb] of DOORS)
+      for (const [x, y, px1, px2] of [[a, b, pa, pb], [b, a, pb, pa]])
+        if (x === r && !(y in prev)) { prev[y] = [r, px1, px2]; q.push(y); }
+  }
+  const pts = [];
+  for (let r = to; prev[r]; r = prev[r][0]) pts.unshift(prev[r][1], prev[r][2]);
+  return pts;
+}
+const WALKS = new Map(), SPEED = 0.1, HOLD_MS = 800;    // SPEED in art pixels per ms
 function walk(from, to) {
   if (!CAST[from] || !CAST[to] || from === to || from === "boss") return;
   const a = CAST[from], b = CAST[to];
-  WALKS.set(from, { tx: b.x + (b.x >= a.x ? -20 : 20), ty: b.y + 3, start: performance.now() });
+  const target = [b.x + (b.x >= a.x ? -20 : 20), b.y + 3];
+  const path = [[a.x, a.y], ...doorRoute(ROOM_OF[from], ROOM_OF[to]), target];
+  const cum = [0];
+  for (let i = 1; i < path.length; i++) cum.push(cum[i - 1] + Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]));
+  WALKS.set(from, { path, cum, start: performance.now() });
   cue("handoff");
+}
+function along(w, d) {                          // point at distance d along the walk's path
+  const { path, cum } = w;
+  let i = 1;
+  while (i < path.length - 1 && cum[i] < d) i++;
+  const seg = cum[i] - cum[i - 1] || 1, f = Math.min(1, Math.max(0, (d - cum[i - 1]) / seg));
+  return [path[i - 1][0] + (path[i][0] - path[i - 1][0]) * f, path[i - 1][1] + (path[i][1] - path[i - 1][1]) * f];
 }
 function walkPos(id, t) {
   const w = WALKS.get(id);
   if (!w) return null;
-  const c = CAST[id], e = t - w.start, ease = f => f * f * (3 - 2 * f);
+  const e = t - w.start, len = w.cum[w.cum.length - 1], go = len / SPEED;
   if (e < 0) return null;
-  if (e > WALK_MS * 2 + HOLD_MS) { WALKS.delete(id); return null; }
-  const f = e < WALK_MS ? ease(e / WALK_MS) : e < WALK_MS + HOLD_MS ? 1 : 1 - ease((e - WALK_MS - HOLD_MS) / WALK_MS);
-  return { x: c.x + (w.tx - c.x) * f, y: c.y + (w.ty - c.y) * f, walking: e < WALK_MS || e > WALK_MS + HOLD_MS,
-           carrying: e < WALK_MS + HOLD_MS, away: true };
+  if (e > go * 2 + HOLD_MS) { WALKS.delete(id); return null; }
+  const d = e < go ? e * SPEED : e < go + HOLD_MS ? len : len - (e - go - HOLD_MS) * SPEED;
+  const [x, y] = along(w, d);
+  return { x, y, walking: e < go || e > go + HOLD_MS, carrying: e < go + HOLD_MS, away: true };
 }
 function agentPos(id, t) {
   const c = CAST[id], w = walkPos(id, t);
