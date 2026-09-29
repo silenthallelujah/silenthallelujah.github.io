@@ -52,6 +52,17 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .bubble { position: absolute; transform: translate(-50%, -100%); max-width: 34%; background: #fffdf5; color: #1b1a24; font: 600 clamp(8px, 1.1vw, 11px)/1.25 var(--body);
           padding: 4px 7px; border-radius: 6px; border: 2px solid #1b1a24; animation: pop .25s ease-out; }
 .bubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; margin-left: -5px; border: 5px solid transparent; border-top-color: #1b1a24; border-bottom: 0; }
+#stage { container-type: inline-size; }         /* wall-screen text scales with the office, not the window */
+.tv { position: absolute; display: flex; align-items: center; gap: 3%; padding: 0 1.5%; overflow: hidden; color: #cfe8ff;
+      font: 600 1.55cqw/1 var(--body); pointer-events: none; }
+.tv .mqw { flex: 1; overflow: hidden; white-space: nowrap; }
+.tv .mq { display: inline-block; padding-left: 100%; animation: marquee 14s linear infinite; }
+@keyframes marquee { to { transform: translateX(-100%); } }
+.tv .lights { display: flex; gap: 2px; flex: none; }
+.tv .lights span { font: 700 1.05cqw/1 var(--body); color: #0b132b; padding: 0.15cqw 0.3cqw; border-radius: 2px; }
+.wb { position: absolute; color: #1b1a24; font: 700 0.92cqw/1.12 var(--body); padding: 0.1cqw 0.5cqw; overflow: hidden;
+      pointer-events: none; white-space: nowrap; }
+.wb b { color: #c1121f; }
 .room { position: absolute; font: clamp(5px, .9vw, 8px)/1 var(--pixel); color: rgba(255,255,255,.75); text-shadow: 1px 1px 0 #000; }
 @keyframes pop { from { transform: translate(-50%, -80%) scale(.6); opacity: 0; } }
 #detail { margin-top: 12px; min-height: 64px; }
@@ -325,9 +336,7 @@ function drawDecor(t) {
   px(117, 1, 3, 3, "#3d4a6b"); px(142, 1, 3, 3, "#3d4a6b"); px(130, 2, 2, 17, "#2b2b2b");
   px(166, 3, 2, 15, "#5c3d2e"); px(162, 7, 10, 2, "#5c3d2e");                      // crucifix
   px(166, 7, 2, 7, "#f5d0a9"); px(163, 7, 8, 1, "#f5d0a9"); px(166, 4, 2, 2, "#f5d0a9"); px(165, 3, 4, 1, "#f2c14e");
-  px(226, 3, 62, 15, "#bfbfbf"); px(227, 4, 60, 13, "#f7f7f7");                       // whiteboard
-  ["#4f8cff", "#e76f51", "#2a9d8f", "#9b5de5", "#f2c14e"].forEach((c, i) => px(230 + i * 11, 7, 8, 3, c));
-  px(230, 12, 30, 1, "#999"); px(230, 14, 22, 1, "#999");
+  px(224, 2, 66, 17, "#bfbfbf"); px(225, 3, 64, 15, "#f7f7f7"); px(283, 18, 6, 1, "#e63946"); px(276, 18, 5, 1, "#1d4e89"); // whiteboard (text overlay)
   drawShelf(3, 24, 22, 45);
   px(271, 104, 12, 3, "#dfe7fd"); px(271, 90, 12, 14, "#a8dadc"); px(273, 92, 8, 10, "#90caf9"); px(271, 107, 12, 14, "#e5e5e5"); // cooler
   px(248, 110, 14, 11, "#495057"); px(250, 112, 10, 4, "#212529"); px(252, 117, 5, 3, "#fff"); px(246, 121, 18, 13, "#6c757d"); // coffee
@@ -358,9 +367,7 @@ function drawDecor(t) {
   px(234, 165, 36, 15, "#a47148"); px(236, 167, 8, 6, "#fff3b0"); px(246, 168, 9, 5, "#caf0f8"); px(257, 166, 10, 7, "#ffccd5");
   drawPlant(302, 258, false);
   // SOCIAL: platform logos, bean bag
-  [["#ff0000", "#fff"], ["#1877f2", "#fff"], ["#e1306c", "#fdc830"], ["#111", "#25f4ee"]].forEach(([a, b], i) => {
-    px(339 + i * 34, 165, 22, 14, a); px(347 + i * 34, 169, 6, 6, b);
-  });
+  px(333, 162, 140, 20, "#111"); px(335, 164, 136, 16, "#0b132b"); px(400, 182, 6, 2, "#333");  // wall TV (text overlay)
   px(440, 256, 30, 20, "#e63946"); px(444, 252, 22, 8, "#f07167"); px(442, 274, 26, 3, "#9d0208");
 }
 function drawDesk(x, y, prop, status, t) {
@@ -733,6 +740,29 @@ function draw(t) {
 // ---------- HTML overlay: room names, name tags, speech bubbles ----------
 const pct = (v, total) => `${(v / total) * 100}%`;
 ROOMS.forEach(r => { const d = document.createElement("div"); d.className = "room"; d.textContent = r.name; d.style.left = pct(r.x + 4, W); d.style.top = pct(r.y + 24, H); overlay.append(d); });
+// wall screens: HTML laid over the canvas so the text stays sharp
+const tvEl = document.createElement("div"), wbEl = document.createElement("div");
+tvEl.className = "tv"; wbEl.className = "wb";
+Object.assign(tvEl.style, { left: pct(336, W), top: pct(165, H), width: pct(134, W), height: pct(14, H) });
+Object.assign(wbEl.style, { left: pct(226, W), top: pct(3, H), width: pct(62, W), height: pct(15, H) });
+overlay.append(tvEl, wbEl);
+const TV_ORDER = [["youtube", "YT"], ["facebook", "FB"], ["instagram", "IG"], ["tiktok", "TT"]];
+const TV_COLOR = { posted: "#52d88a", scheduled: "#4f9cff", pending: "#f2c14e", retrying: "#f2c14e", private: "#ff5c5c", failed: "#ff5c5c", off: "#555" };
+function renderScreens() {
+  const runs = S.runs.filter(r => !/^test-/.test(r.day));
+  const r = runs.find(x => Object.keys(x.platforms || {}).length) || runs[0];
+  const lights = TV_ORDER.map(([k, l]) => { const s = r?.platforms?.[k]?.state || "off";
+    return `<span title="${l}: ${esc(s)}" style="background:${TV_COLOR[s] || "#555"}">${l}</span>`; }).join("");
+  const title = r ? `${r.day.endsWith("-pm") ? "🌙" : "☀️"} ${esc(r.title || "Untitled")}` : "Silent Hallelujah";
+  const html = `<div class="mqw"><div class="mq">${title} &nbsp;·&nbsp; ${title}</div></div><div class="lights">${lights}</div>`;
+  if (tvEl.innerHTML !== html) tvEl.innerHTML = html;
+  const day = manilaDay(), wd = DAYS[(new Date(day + "T00:00:00Z").getUTCDay() + 6) % 7];
+  const F = S.schedule?.formats || {}, label = k => F[k]?.label || k || "-";
+  const am = S.runs.find(x => x.day === day)?.format || S.schedule?.grid?.morning?.[wd];
+  const pm = S.runs.find(x => x.day === day + "-pm")?.format || S.schedule?.grid?.evening?.[wd];
+  const wb = `<b>TODAY</b><br>☀ ${esc(label(am))}<br>☾ ${esc(label(pm))}`;
+  if (wbEl.innerHTML !== wb) wbEl.innerHTML = wb;
+}
 const tags = {}, bubbleEls = {};
 for (const id of Object.keys(CAST)) {
   const tg = document.createElement("div"); tg.className = "tag"; tg.onclick = () => select(id); overlay.append(tg); tags[id] = tg;
@@ -1035,7 +1065,7 @@ function renderSchedule() {
     <div class="muted" style="font-size:11.5px;margin-top:4px">From the Evangelizo feed, refreshed at each 10:00 AM run (last ${ago(S.upcoming.generated)}).</div>` : ""}
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
-function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderAccounts(); }
+function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderAccounts(); renderScreens(); }
 
 // ---------- data ----------
 async function load() {
@@ -1072,10 +1102,10 @@ function subscribe() {
     .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => {
       const before = S.runs.find(r => r.day === p.new?.day)?.stage;
       if (p.new?.stage === "published" && before && before !== "published" && !/^test-/.test(p.new.day)) celebrate();   // a video just went live
-      if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); renderApprovals(); renderHealth(); })
+      if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); renderApprovals(); renderHealth(); renderScreens(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "schedule" }, p => {
       if (p.new?.id === "upcoming") S.upcoming = p.new.data; else if (p.new?.data) S.schedule = p.new.data;
-      renderSchedule();
+      renderSchedule(); renderScreens();
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); renderAccounts(); } })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "credits" }, p => { S.credits.push(p.new); renderCredits(); })
@@ -1129,7 +1159,7 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
              { id: "d20", num: 20, title: "Demo backlog idea", detail: "Example only.", area: "Channel", owner: "You", status: "backlog", sort: 2 },
              ...Array.from({ length: 6 }, (_, k) => ({ id: "q" + k, num: 21 + k, title: `Demo queued task ${21 + k} with a longer title`,
                detail: "Example only. ".repeat(12), area: "Editorial", owner: "Claude", status: "backlog", sort: 3 + k }))];
-  fetch("schedule.json").then(r => r.ok ? r.json() : null).then(j => { S.schedule = j; renderSchedule(); }).catch(() => {});
+  fetch("schedule.json").then(r => r.ok ? r.json() : null).then(j => { S.schedule = j; renderSchedule(); renderScreens(); }).catch(() => {});
   const alertsDemo = new URLSearchParams(location.search).get("demo") === "alerts";   // ?demo=alerts previews the warnings
   S.heartbeat = { scheduler: { at: new Date(Date.now() - (alertsDemo ? 45 : 3) * 60000).toISOString(), info: { disk_free_gb: 142.6 } },
                   listener: { at: new Date().toISOString(), info: {} },
