@@ -63,6 +63,19 @@ body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right
   font: 600 clamp(11px, 1.6vh, 20px) var(--body); color: var(--ink); white-space: nowrap; overflow: hidden; }
 #tvbar #tvclock { font-family: var(--pixel); font-size: clamp(9px, 1.4vh, 16px); color: var(--gold); }
 #tvbar #tvexit { margin-left: auto; }
+#roster { display: flex; flex-wrap: wrap; gap: 6px; }
+.ag { display: flex; flex-direction: column; align-items: center; width: 78px; padding: 6px 2px 5px; border-radius: 8px;
+      border: 1px solid transparent; cursor: pointer; text-align: center; }
+.ag:hover, .ag.sel { background: var(--panel2); border-color: var(--line); }
+.ag img { width: 50px; height: 50px; border-radius: 50%; border: 3px solid; background: #34304a; image-rendering: pixelated;
+          object-fit: cover; object-position: 50% 20%; }
+.ag .n { font: 600 12.5px/1.2 var(--body); margin-top: 4px; white-space: nowrap; }
+.ag .n i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
+.ag .r { font-size: 10.5px; line-height: 1.2; color: var(--muted); margin-top: 1px; }
+.dwrap { display: flex; gap: 12px; align-items: center; }
+.bigp { width: 72px; height: 72px; flex: none; border-radius: 50%; border: 3px solid; background: #34304a; image-rendering: pixelated;
+        object-fit: cover; object-position: 50% 20%; }
+@media (max-width: 600px) { .ag { width: 64px; } .ag img { width: 42px; height: 42px; } }
 .seasonpill { margin-left: 10px; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--season, var(--line)); }
 header { border-bottom-color: var(--season, var(--line)) !important; }
 #stage { border-color: var(--season, var(--line)) !important; }
@@ -284,7 +297,8 @@ const ROOMS = [
 
 const cv = document.getElementById("cv"), g = cv.getContext("2d");
 const overlay = document.getElementById("overlay");
-const px = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
+let G = g;                                        // current drawing target (swapped to paint portraits off-screen)
+const px = (x, y, w, h, c) => { G.fillStyle = c; G.fillRect(Math.round(x), Math.round(y), w, h); };
 
 // ---------- state ----------
 const S = { agents: new Map(), events: [], runs: [], tasks: [], schedule: null, heartbeat: {}, approvalAlert: null, credits: [],
@@ -1062,11 +1076,23 @@ function renderFeed() {
       <b>${esc(a?.name || e.agent)}</b>: ${esc(e.message)}</div>`;
   }).join("") || `<p class="muted">No activity yet.</p>`;
 }
+const PORTRAITS = {};
+function portrait(id) {                          // head + shoulders from the agent's own office sprite
+  if (PORTRAITS[id]) return PORTRAITS[id];
+  const oc = document.createElement("canvas"); oc.width = 21; oc.height = 22;
+  const prev = G; G = oc.getContext("2d");
+  try { drawPerson(CAST[id], 1, 4, "walk", 1000, false, null); } finally { G = prev; }
+  return (PORTRAITS[id] = oc.toDataURL());
+}
+const ROLE_SHORT = { boss: "Owner (you)", producer: "Producer" };
 function renderRoster() {
   document.getElementById("roster").innerHTML = Object.keys(CAST).map(id => {
     const a = S.agents.get(id), st = effStatus(a);
-    return `<span class="badge" style="cursor:pointer" data-id="${id}"><i style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${STATUS_COLOR[st]};margin-right:4px"></i>${esc(a?.name || id)}</span>`;
-  }).join(" ");
+    return `<div class="ag${S.selected === id ? " sel" : ""}" data-id="${id}" title="${esc(a?.role || "")}">
+      <img src="${portrait(id)}" alt="" style="border-color:${STATUS_COLOR[st]}">
+      <div class="n"><i style="background:${STATUS_COLOR[st]}"></i>${esc(a?.name || id)}</div>
+      <div class="r">${esc(ROLE_SHORT[id] || a?.role || "")}</div></div>`;
+  }).join("");
   document.querySelectorAll("#roster [data-id]").forEach(el => el.onclick = () => select(el.dataset.id));
   const counts = { working: 0, waiting: 0, idle: 0, error: 0 };
   S.agents.forEach(a => { const s = effStatus(a); if (s in counts) counts[s]++; });
@@ -1078,9 +1104,10 @@ function renderDetail() {
   if (!id || !a) return;
   const st = effStatus(a);
   const stale = st === "error" && a.status === "working" ? " (no update for 25+ min - may be stuck)" : "";
-  el.innerHTML = `<div class="who">${esc(a.name)} <span class="pill st-${st}">${st}</span></div>
+  el.innerHTML = `<div class="dwrap"><img class="bigp" src="${portrait(id)}" alt="" style="border-color:${STATUS_COLOR[st]}"><div>
+    <div class="who">${esc(a.name)} <span class="pill st-${st}">${st}</span></div>
     <div><b>${esc(a.role)}</b> · ${esc(a.activity || "-")}${stale}</div>
-    <div class="muted">Updated ${ago(a.updated_at)}${a.day ? ` · video ${esc(a.day)}` : ""}</div>`;
+    <div class="muted">Updated ${ago(a.updated_at)}${a.day ? ` · video ${esc(a.day)}` : ""}</div></div></div>`;
   el.classList.remove("muted");
 }
 function select(id) { S.selected = id; renderRoster(); }
