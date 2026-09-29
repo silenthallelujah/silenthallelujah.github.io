@@ -93,6 +93,9 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .meter { height: 10px; background: var(--panel2); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
 .meter div { height: 100%; background: var(--work); } .meter.amber div { background: var(--wait); } .meter.red div { background: var(--err); }
 .cr { margin-bottom: 3px; }
+.acct { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.acct:first-child { border-top: 0; } .acct i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.acct .d { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .feed { max-height: 320px; overflow: auto; font-size: 13px; }
 .feed div { padding: 4px 0; border-top: 1px solid var(--line); }
 .feed time { color: var(--muted); font-size: 11px; margin-right: 6px; }
@@ -193,6 +196,10 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
     <div class="card">
       <h2>RECENT VIDEOS</h2>
       <table class="runs"><tbody id="runs"></tbody></table>
+    </div>
+    <div class="card">
+      <h2>ACCOUNTS</h2>
+      <div id="accounts" class="muted">Loading…</div>
     </div>
     <div class="card">
       <h2>TYPECAST CREDITS</h2>
@@ -561,6 +568,21 @@ function renderRuns() {
     <td><b>${esc(r.title || "-")}</b><br><span class="badge">${esc(r.format || "")}</span><span class="badge">${esc(r.stage)}</span>
     <div class="pfs">${platformChips(r)}</div></td></tr>`).join("");
 }
+const ACCOUNTS = { youtube: "YouTube", facebook: "Facebook Page", instagram: "Instagram", typecast: "Typecast", telegram: "Telegram bot" };
+const ACCOUNT_FIX = { youtube: "re-authorise on the mini PC: python youtube.py auth",
+  facebook: "new Graph API Explorer token, then python meta.py setup", instagram: "same fix as Facebook (python meta.py setup)",
+  typecast: "check the plan and key: cast subscription / cast login", telegram: "check TELEGRAM_BOT_TOKEN on the mini PC" };
+function renderAccounts() {
+  const el = document.getElementById("accounts"), c = S.heartbeat.connections;
+  if (!el) return;
+  if (!c) { el.innerHTML = `<p class="muted">Not checked yet - the mini PC checks every hour.</p>`; return; }
+  const old = Date.now() - Date.parse(c.at) > 3 * 3600000;
+  el.innerHTML = Object.entries(ACCOUNTS).filter(([k]) => c.info?.[k]).map(([k, name]) => {
+    const r = c.info[k];
+    return `<div class="acct"><i style="background:${r.ok ? "var(--work)" : "var(--err)"}"></i><div><b>${name}</b>
+      <div class="d">${r.ok ? esc(r.detail) : "BROKEN: " + esc(r.detail)}</div></div></div>`;
+  }).join("") + `<div class="muted" style="margin-top:6px">Checked ${ago(c.at)}${old ? " - the hourly check is overdue" : ""}</div>`;
+}
 function renderCredits() {
   const el = document.getElementById("credits");
   if (!el) return;
@@ -674,6 +696,10 @@ function renderHealth() {
     alerts.push(["", `<b>${esc(a.name)} (${esc(a.role)})</b> ${stuck ? "seems stuck" : "reported a problem"}: ${esc(a.activity)}
       <span class="muted">· ${ago(a.updated_at)}${a.day ? ` · video ${esc(a.day)}` : ""}</span>`]);
   });
+  Object.entries(hb("connections")?.info || {}).forEach(([k, r]) => {
+    if (r && r.ok === false) alerts.push(["", `<b>${ACCOUNTS[k] || esc(k)} connection is broken</b> - posts there will fail.
+      Fix: ${esc(ACCOUNT_FIX[k] || "see Telegram")}. <span class="muted">(${esc(r.detail).slice(0, 120)})</span>`]);
+  });
   S.runs.filter(r => r.platforms?.youtube?.state === "private").slice(0, 3).forEach(r => {
     const u = studioUrl(r.platforms.youtube.url);
     alerts.push(["warn", `<b>"${esc(r.title || r.day)}" is still Private on YouTube</b> (the API audit hasn't passed yet).
@@ -716,7 +742,7 @@ function renderSchedule() {
     <tbody>${rows}</tbody></table>
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
-function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); }
+function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderAccounts(); }
 
 // ---------- data ----------
 async function load() {
@@ -751,7 +777,7 @@ function subscribe() {
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => { if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); renderApprovals(); renderHealth(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "schedule" }, p => { if (p.new?.data) { S.schedule = p.new.data; renderSchedule(); } })
-    .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); } })
+    .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); renderAccounts(); } })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "credits" }, p => { S.credits.push(p.new); renderCredits(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, p => {
       if (p.eventType === "DELETE") S.tasks = S.tasks.filter(x => x.id !== p.old.id); else upsert(S.tasks, p.new, "id"); renderTasks(); })
@@ -806,7 +832,12 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   fetch("schedule.json").then(r => r.ok ? r.json() : null).then(j => { S.schedule = j; renderSchedule(); }).catch(() => {});
   const alertsDemo = new URLSearchParams(location.search).get("demo") === "alerts";   // ?demo=alerts previews the warnings
   S.heartbeat = { scheduler: { at: new Date(Date.now() - (alertsDemo ? 45 : 3) * 60000).toISOString(), info: { disk_free_gb: 142.6 } },
-                  listener: { at: new Date().toISOString(), info: {} } };
+                  listener: { at: new Date().toISOString(), info: {} },
+                  connections: { at: new Date(Date.now() - 20 * 60000).toISOString(), info: {
+                    youtube: { ok: true, detail: "channel: Silent Hallelujah (demo)" },
+                    facebook: alertsDemo ? { ok: false, detail: "Demo: Cannot call API for app on behalf of user" } : { ok: true, detail: "page: Silent Hallelujah (demo)" },
+                    instagram: { ok: true, detail: "@silenthallelujah (demo)" }, typecast: { ok: true, detail: "plan lite (demo)" },
+                    telegram: { ok: true, detail: "@demo_bot" } } } };
   S.runs.push({ day: manilaDay() + "-pm", title: "Demo: In Peace I Will Lie Down and Sleep", format: "night_prayer",
                 stage: "awaiting_approval", links: {} },
               { day: "2026-09-28", title: "Demo: The Lord Gave and Has Taken Away", format: "prayer", stage: "published", links: {},
