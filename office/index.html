@@ -52,6 +52,17 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .bubble { position: absolute; transform: translate(-50%, -100%); max-width: 34%; background: #fffdf5; color: #1b1a24; font: 600 clamp(8px, 1.1vw, 11px)/1.25 var(--body);
           padding: 4px 7px; border-radius: 6px; border: 2px solid #1b1a24; animation: pop .25s ease-out; }
 .bubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; margin-left: -5px; border: 5px solid transparent; border-top-color: #1b1a24; border-bottom: 0; }
+#tvbar { display: none; }
+body.tvmode { overflow: hidden; }
+body.tvmode::before { content: ""; position: fixed; inset: 0; background: #000; z-index: 40; }
+body.tvmode #stage { position: fixed; z-index: 41; left: 50%; top: calc(50% - 2.2vh); transform: translate(-50%, -50%);
+  width: min(100vw, calc(92vh * 480 / 288)); border: 3px solid var(--season, var(--line)); border-radius: 0; }
+body.tvmode #gate { display: none !important; }
+body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right: 0; bottom: 0; height: 5vh; min-height: 30px;
+  align-items: center; gap: 2.5vw; padding: 0 2vw; background: #0d0c14; border-top: 2px solid var(--season, var(--line));
+  font: 600 clamp(11px, 1.6vh, 20px) var(--body); color: var(--ink); white-space: nowrap; overflow: hidden; }
+#tvbar #tvclock { font-family: var(--pixel); font-size: clamp(9px, 1.4vh, 16px); color: var(--gold); }
+#tvbar #tvexit { margin-left: auto; }
 .seasonpill { margin-left: 10px; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--season, var(--line)); }
 header { border-bottom-color: var(--season, var(--line)) !important; }
 #stage { border-color: var(--season, var(--line)) !important; }
@@ -166,10 +177,12 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
       <span id="pc" class="pcpill hide"><i></i><span></span></span>
       <span id="season" class="seasonpill"></span></div>
   </div>
-  <div><div id="clock"></div><button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
+  <div><div id="clock"></div><button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
 </header>
 
 <div id="alerts" class="hide"></div>
+<div id="tvbar"><span id="tvclock"></span><span id="tvstatus"></span><span id="tvtoday"></span><span id="tvnext"></span><span id="tvpc"></span>
+  <button id="tvexit" class="ghost" title="Exit TV mode (Esc)">✕</button></div>
 <main>
   <section class="col">
     <div id="stage">
@@ -566,6 +579,38 @@ function idleTick(t) {
   }
 }
 function poseOf(id) { const p = POSES.get(id); if (!p) return null; if (performance.now() > p.until) { POSES.delete(id); return null; } return p.pose; }
+// ---------- TV mode: the office full screen with a status bar ----------
+function tvOn() {
+  document.body.classList.add("tvmode");
+  const el = document.documentElement;
+  (el.requestFullscreen?.() || el.webkitRequestFullscreen?.() || Promise.resolve()).catch?.(() => {});   // phones: fills the screen instead
+  renderTvBar();
+}
+function tvOff() {
+  document.body.classList.remove("tvmode");
+  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+}
+document.getElementById("tvbtn").onclick = tvOn;
+document.getElementById("tvexit").onclick = tvOff;
+document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) document.body.classList.remove("tvmode"); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") tvOff(); });
+function renderTvBar() {
+  if (!document.body.classList.contains("tvmode")) return;
+  const set = (id, h) => { const el = document.getElementById(id); if (el.innerHTML !== h) el.innerHTML = h; };
+  set("tvclock", new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", weekday: "short", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date()) + " PHT");
+  const n = { working: 0, waiting: 0 };
+  S.agents.forEach(a => { const s = effStatus(a); if (s in n) n[s]++; });
+  set("tvstatus", `🟢 ${n.working} working · 🟡 ${n.waiting} waiting`);
+  const day = manilaDay(), LBL = { planning: "planning", writing: "writing", revising: "revising", narrating: "recording", rendering: "rendering",
+    awaiting_approval: "needs approval", approved: "approved", rejected: "rejected", scheduled: "scheduled", published: "live ✓" };
+  const am = S.runs.find(r => r.day === day), pm = S.runs.find(r => r.day === day + "-pm");
+  set("tvtoday", `☀ ${am ? esc(LBL[am.stage] || am.stage) : "not started"} · 🌙 ${pm ? esc(LBL[pm.stage] || pm.stage) : "not started"}`);
+  const next = S.runs.filter(r => r.stage === "awaiting_approval" && !/^test-/.test(r.day)).map(r => goLiveMs(r.day) - LEAD_MS - Date.now()).sort((a, b) => a - b)[0];
+  set("tvnext", next === undefined ? "" : next > 0 ? `⏳ approve within ${span(next)}` : "⚠ approval is late");
+  const hb = S.heartbeat.scheduler, ok = hb && Date.now() - Date.parse(hb.at) < HB_STALE_MS;
+  set("tvpc", ok ? "💻 mini PC online" : "🔴 mini PC silent");
+}
+
 // ---------- liturgical season (colour + seasonal touches) ----------
 function easter(y) {                            // Gregorian computus (Meeus/Jones/Butcher)
   const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
@@ -1289,6 +1334,7 @@ else {
 setInterval(() => {
   document.getElementById("clock").textContent = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", weekday: "short", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date()) + " PHT";
   if (S.selected) renderDetail();
+  renderTvBar();
 }, 1000);
 setInterval(() => { renderToday(); renderRoster(); }, 60000);          // staleness + day rollover
 setInterval(() => { renderApprovals(); renderHealth(); }, 30000);      // countdowns + "mini PC alive" ageing
