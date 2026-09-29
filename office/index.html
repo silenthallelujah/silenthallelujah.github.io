@@ -137,7 +137,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
     <div class="sub"><span id="live"></span><span id="livetxt">Connecting…</span>
       <span id="pc" class="pcpill hide"><i></i><span></span></span></div>
   </div>
-  <div><div id="clock"></div><button id="signout" class="ghost hide">Sign out</button></div>
+  <div><div id="clock"></div><button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
 </header>
 
 <div id="alerts" class="hide"></div>
@@ -334,13 +334,81 @@ function drawPerson(c, x, y, status, t, walking) {
   if (status === "waiting") { const f = (t >> 9) & 1; px(x + 11, hy - 6, 4, 1, "#f2c14e"); px(x + 12 + f, hy - 5, 2, 2, "#f2c14e"); px(x + 11, hy - 3, 4, 1, "#f2c14e"); }
   if (sleepy) { const z = (t >> 9) % 3; px(x + 10 + z, hy - 3 - z * 2, 3, 1, "#cfd8ff"); px(x + 12 + z, hy - 2 - z * 2, 1, 1, "#cfd8ff"); px(x + 10 + z, hy - 1 - z * 2, 3, 1, "#cfd8ff"); }
 }
+// ---------- sound cues (off by default; the choice is remembered on this device) ----------
+let SOUND = false, actx = null;
+try { SOUND = localStorage.getItem("office-sound") === "on"; } catch {}
+const soundBtn = document.getElementById("sound");
+const paintSound = () => { soundBtn.textContent = SOUND ? "🔊" : "🔇"; soundBtn.title = SOUND ? "Sound cues on - click to mute" : "Sound cues off - click to turn on"; };
+soundBtn.onclick = () => { SOUND = !SOUND; try { localStorage.setItem("office-sound", SOUND ? "on" : "off"); } catch {} paintSound(); if (SOUND) cue("handoff"); };
+paintSound();
+function cue(kind) {                          // tiny square-wave blips: hand-off / needs approval / problem
+  if (!SOUND) return;
+  try {
+    actx ||= new AudioContext();
+    const [f0, f1, len] = { handoff: [660, 880, 0.18], approve: [523, 1047, 0.45], error: [240, 150, 0.5] }[kind] || [600, 600, 0.2];
+    const o = actx.createOscillator(), gn = actx.createGain(), now = actx.currentTime;
+    o.type = "square"; o.frequency.setValueAtTime(f0, now); o.frequency.linearRampToValueAtTime(f1, now + len * 0.6);
+    gn.gain.setValueAtTime(0.035, now); gn.gain.exponentialRampToValueAtTime(0.0001, now + len);
+    o.connect(gn).connect(actx.destination); o.start(now); o.stop(now + len);
+  } catch {}
+}
+
+// ---------- hand-off walks: the sender carries the work to the next desk, then walks back ----------
+const NEXT = { planner: "writer", writer: "checker", checker: "editor", editor: "producer", producer: "narrator",
+               narrator: "renderer", renderer: "clerk" };
+function handoffTarget(e) {
+  const m = (e.message || "").toLowerCase();
+  if (e.agent === "checker" && m.includes("back")) return "writer";          // Scripture check failed
+  if (e.agent === "editor" && m.startsWith("asked wren")) return "writer";   // editor wants changes
+  if (e.agent === "clerk") return m.includes("sofia") ? "social" : m.includes("wren") ? "writer" : "boss";
+  return NEXT[e.agent] || null;
+}
+const WALKS = new Map(), WALK_MS = 1700, HOLD_MS = 700;
+function walk(from, to) {
+  if (!CAST[from] || !CAST[to] || from === to || from === "boss") return;
+  const a = CAST[from], b = CAST[to];
+  WALKS.set(from, { tx: b.x + (b.x >= a.x ? -13 : 13), ty: b.y + 2, start: performance.now() });
+  cue("handoff");
+}
+function walkPos(id, t) {
+  const w = WALKS.get(id);
+  if (!w) return null;
+  const c = CAST[id], e = t - w.start, ease = f => f * f * (3 - 2 * f);
+  if (e < 0) return null;
+  if (e > WALK_MS * 2 + HOLD_MS) { WALKS.delete(id); return null; }
+  const f = e < WALK_MS ? ease(e / WALK_MS) : e < WALK_MS + HOLD_MS ? 1 : 1 - ease((e - WALK_MS - HOLD_MS) / WALK_MS);
+  return { x: c.x + (w.tx - c.x) * f, y: c.y + (w.ty - c.y) * f, walking: e < WALK_MS || e > WALK_MS + HOLD_MS,
+           carrying: e < WALK_MS + HOLD_MS, away: true };
+}
 function agentPos(id, t) {
-  const c = CAST[id];
+  const c = CAST[id], w = walkPos(id, t);
+  if (w) return w;
   if (id === "producer" && effStatus(S.agents.get(id)) === "working") {    // the coordinator walks the newsroom floor
     const span = 120, p = (t / 30) % (span * 2), d = p < span ? p : span * 2 - p;
     return { x: 24 + d, y: 64, walking: true };
   }
   return { x: c.x, y: c.y, walking: false };
+}
+function manilaHourF() {                     // e.g. 18.5 = 6:30 PM PHT
+  const [h, m] = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", hour12: false })
+    .format(new Date()).split(":").map(Number);
+  return (h % 24) + m / 60;
+}
+function drawLighting(t) {                     // dawn/dusk warmth, night darkness, desk lamps for whoever is working
+  const h = manilaHourF(), night = h < 5.5 || h >= 18.5, dusk = !night && (h < 7 || h >= 17);
+  if (!night && !dusk) return;
+  g.fillStyle = night ? "rgba(8,12,40,0.5)" : "rgba(255,140,60,0.13)";
+  g.fillRect(0, 0, W, H);
+  if (!night) return;
+  g.save(); g.globalCompositeOperation = "lighter";
+  for (const id of Object.keys(CAST)) {
+    const st = effStatus(S.agents.get(id)), p = agentPos(id, t);
+    if (st !== "working" || p.away) continue;
+    const x = CAST[id].x + 6, y = CAST[id].y + 9, r = g.createRadialGradient(x, y, 1, x, y, 20);
+    r.addColorStop(0, "rgba(255,225,150,0.45)"); r.addColorStop(1, "rgba(255,225,150,0)");
+    g.fillStyle = r; g.fillRect(x - 20, y - 20, 40, 40);
+  }
+  g.restore();
 }
 function draw(t) {
   const night = manilaHour() < 6 || manilaHour() >= 18;
@@ -350,10 +418,16 @@ function draw(t) {
   for (const id of Object.keys(CAST)) {
     const c = CAST[id], st = effStatus(S.agents.get(id)), p = agentPos(id, t);
     if (id === "boss") { drawPerson(c, p.x, p.y, st, t, false); drawBossDesk(c.x, c.y); continue; }
-    if (p.walking) { drawDesk(c.x, c.y, c.prop, "idle", t); drawPerson(c, p.x, p.y, st, t, true); continue; }
+    if (p.away || p.walking) {
+      drawDesk(c.x, c.y, c.prop, "idle", t);
+      drawPerson(c, p.x, p.y, "working", t, p.walking);
+      if (p.carrying) { px(p.x + 8, p.y + 9, 5, 6, "#fffdf5"); px(p.x + 9, p.y + 11, 3, 1, "#999"); px(p.x + 9, p.y + 13, 3, 1, "#999"); }
+      continue;
+    }
     drawPerson(c, p.x, p.y, st, t, false);
     drawDesk(c.x, c.y, c.prop, st, t);
   }
+  drawLighting(t);
   placeOverlay(t);
   requestAnimationFrame(draw);
 }
@@ -609,8 +683,16 @@ function subscribe() {
   channel?.unsubscribe();
   const upsert = (list, row, key) => { const i = list.findIndex(x => x[key] === row[key]); if (i >= 0) list[i] = row; else list.push(row); };
   channel = sb.channel("office")
-    .on("postgres_changes", { event: "*", schema: "public", table: "agents" }, p => { if (p.new?.id) S.agents.set(p.new.id, p.new); renderRoster(); renderTasks(); renderHealth(); })
-    .on("postgres_changes", { event: "INSERT", schema: "public", table: "events" }, p => { S.events.unshift(p.new); say(p.new.agent, p.new.message); renderFeed(); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "agents" }, p => {
+      if (p.new?.id === "boss" && p.new.status === "waiting" && S.agents.get("boss")?.status !== "waiting") cue("approve");
+      if (p.new?.id) S.agents.set(p.new.id, p.new);
+      renderRoster(); renderTasks(); renderHealth();
+    })
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "events" }, p => {
+      S.events.unshift(p.new); say(p.new.agent, p.new.message); renderFeed();
+      if (p.new.kind === "handoff") walk(p.new.agent, handoffTarget(p.new));
+      if (p.new.kind === "error") cue("error");
+    })
     .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => { if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); renderApprovals(); renderHealth(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "schedule" }, p => { if (p.new?.data) { S.schedule = p.new.data; renderSchedule(); } })
     .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); } })
@@ -681,6 +763,7 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
     if (alertsDemo) Object.assign(S.agents.get("social"), { status: "error", activity: "Demo: Instagram failed - retrying next run" });
     S.runs[0].stage = stages[i % stages.length];
     S.events.unshift({ at: now(), agent: id, kind: "start", message: act });
+    if (i > 0) walk(script[(i - 1) % script.length][0], id);            // preview the hand-off walk
     say(id, act); i++; renderAll();
   };
   tick(); setInterval(tick, 4000);
