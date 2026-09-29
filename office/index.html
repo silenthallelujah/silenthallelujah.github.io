@@ -113,6 +113,8 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .later { opacity: .55; }
 .types { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 18px; margin-top: 14px; }
 @media (max-width: 700px) { .types { grid-template-columns: minmax(0, 1fr); } .sgrid td:first-child { width: 44px; } }
+.uph { font: 8px/2 var(--pixel); color: var(--gold); margin: 16px 0 2px; }
+.sgrid.up td:nth-child(2) { width: 38%; }
 .types h4 { font: 8px/2 var(--pixel); color: var(--gold); margin: 6px 0 2px; }
 .types p { margin: 0 0 6px; font-size: 12.5px; } .types p b { color: var(--ink); }
 .bhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
@@ -737,9 +739,24 @@ function renderSchedule() {
   }).join("");
   const et = sc.go_live_et || {};
   const group = slot => Object.values(F).filter(f => f.slot === slot).map(f => `<p><b>${esc(f.label)}</b> - ${esc(f.summary)}</p>`).join("");
+  const up = (S.upcoming?.days || []).filter(u => u.date >= today).slice(0, 7);
+  const upRows = up.map(u => {
+    const d = new Date(u.date + "T00:00:00Z"), wd = DAYS[(d.getUTCDay() + 6) % 7];
+    const day = u.feast || u.liturgical || "", saint = (u.saints || [])[0] || "";
+    const eveNote = u.evening === "saint"
+      ? (u.saint ? `<div class="snote">${esc(u.saint)} · ${u.butler ? "life from Butler's Lives" : "intercession prayer (not in Butler's)"}</div>`
+                 : `<div class="snote">no saint listed - intercession prayer</div>`) : "";
+    return `<tr class="${u.date === today ? "today" : ""}"><td>${wd}<div class="snote">${u.date.slice(5)}</div></td>
+      <td><div class="stype">${esc(day)}</div>${saint && saint !== day ? `<div class="snote">${esc(saint)}</div>` : ""}</td>
+      <td><div class="stype">${esc(label(u.morning))}</div>${u.may_change ? `<div class="snote swap">may change for the feast</div>` : ""}</td>
+      <td><div class="stype">${esc(label(u.evening))}</div>${eveNote}</td></tr>`;
+  }).join("");
   body.classList.remove("muted");
   body.innerHTML = `<table class="sgrid"><thead><tr><th>DAY</th><th>MORNING · ${etPht(et.morning || "06:00")}</th><th>EVENING · ${etPht(et.evening || "18:00")}</th></tr></thead>
     <tbody>${rows}</tbody></table>
+    ${up.length ? `<h4 class="uph">COMING UP · NEXT 7 DAYS</h4>
+    <table class="sgrid up"><thead><tr><th>DAY</th><th>LITURGICAL DAY / SAINT</th><th>MORNING</th><th>EVENING</th></tr></thead><tbody>${upRows}</tbody></table>
+    <div class="muted" style="font-size:11.5px;margin-top:4px">From the Evangelizo feed, refreshed at each 10:00 AM run (last ${ago(S.upcoming.generated)}).</div>` : ""}
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
 function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderAccounts(); }
@@ -749,7 +766,7 @@ async function load() {
   const [a, e, r, t, sc, hb, cr] = await Promise.all([
     sb.from("agents").select("*"), sb.from("events").select("*").order("at", { ascending: false }).limit(60),
     sb.from("runs").select("*").order("day", { ascending: false }).limit(30), sb.from("tasks").select("*"),
-    sb.from("schedule").select("data").eq("id", "current").maybeSingle(), sb.from("heartbeat").select("*"),
+    sb.from("schedule").select("id,data"), sb.from("heartbeat").select("*"),
     sb.from("credits").select("*").gte("at", new Date(Date.now() - 45 * 86400000).toISOString()).order("at").limit(2000),
   ]);
   const err = a.error || e.error || r.error || t.error || sc.error || hb.error || cr.error;
@@ -757,7 +774,8 @@ async function load() {
   S.heartbeat = Object.fromEntries(hb.data.map(x => [x.id, x]));
   S.credits = cr.data;
   S.agents = new Map(a.data.map(x => [x.id, x])); S.events = e.data; S.runs = r.data; S.tasks = t.data;
-  S.schedule = sc.data?.data || null;
+  S.schedule = sc.data.find(x => x.id === "current")?.data || null;
+  S.upcoming = sc.data.find(x => x.id === "upcoming")?.data || null;
   renderAll();
 }
 let channel;
@@ -776,7 +794,10 @@ function subscribe() {
       if (p.new.kind === "error") cue("error");
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => { if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); renderApprovals(); renderHealth(); })
-    .on("postgres_changes", { event: "*", schema: "public", table: "schedule" }, p => { if (p.new?.data) { S.schedule = p.new.data; renderSchedule(); } })
+    .on("postgres_changes", { event: "*", schema: "public", table: "schedule" }, p => {
+      if (p.new?.id === "upcoming") S.upcoming = p.new.data; else if (p.new?.data) S.schedule = p.new.data;
+      renderSchedule();
+    })
     .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); renderAccounts(); } })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "credits" }, p => { S.credits.push(p.new); renderCredits(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, p => {
@@ -846,6 +867,12 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
                              tiktok: { state: "off", note: "not set up yet" } } });
   S.runs[0].platforms = { youtube: { state: "scheduled" }, facebook: { state: "scheduled" }, instagram: { state: "scheduled" },
                           tiktok: { state: "off", note: "not set up yet" } };
+  const dd = n => new Date(Date.parse(manilaDay() + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
+  S.upcoming = { generated: new Date().toISOString(), days: [
+    { date: dd(0), liturgical: "Demo: Wednesday of the Twenty-sixth week", feast: "", saints: ["Demo: St. Jerome"], morning: "daily_bread", evening: "night_prayer" },
+    { date: dd(1), liturgical: "Demo: Thursday of the Twenty-sixth week", feast: "", saints: ["Demo: St. Thérèse"], morning: "gospel", evening: "rosary_luminous" },
+    { date: dd(2), liturgical: "Demo: Guardian Angels - Memorial", feast: "Demo: Guardian Angels - Memorial", saints: [], morning: "prayer", evening: "night_psalm", may_change: true },
+    { date: dd(3), liturgical: "Demo: Saturday", feast: "", saints: ["Demo: St. Gerard"], morning: "marian", evening: "saint", saint: "Demo: St. Gerard of Brogne", butler: true }] };
   S.credits = [{ at: new Date(Date.now() - 2 * 86400000).toISOString(), used: 3994, total: 200000 },
                { at: new Date().toISOString(), used: 8574, total: 200000 }];
   let i = 0;
