@@ -70,7 +70,21 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .feed div { padding: 4px 0; border-top: 1px solid var(--line); }
 .feed time { color: var(--muted); font-size: 11px; margin-right: 6px; }
 .col { display: grid; gap: 16px; align-content: start; }
-#board { grid-column: 1 / -1; }
+#board, #sched { grid-column: 1 / -1; }
+.sgrid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.sgrid th { font: 8px/1.8 var(--pixel); color: var(--muted); text-align: left; padding: 6px; }
+.sgrid td { padding: 7px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+.sgrid td:first-child { width: 64px; font: 9px/1.6 var(--pixel); }
+.sgrid tr.today td { background: #2e2a19; }
+.sgrid tr.today td:first-child { color: var(--gold); }
+.stype { font-weight: 600; }
+.snote { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.snote.made { color: var(--work); } .snote.swap { color: var(--gold); }
+.later { opacity: .55; }
+.types { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 18px; margin-top: 14px; }
+@media (max-width: 700px) { .types { grid-template-columns: minmax(0, 1fr); } .sgrid td:first-child { width: 44px; } }
+.types h4 { font: 8px/2 var(--pixel); color: var(--gold); margin: 6px 0 2px; }
+.types p { margin: 0 0 6px; font-size: 12.5px; } .types p b { color: var(--ink); }
 .bhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
 .bhead h2 { margin: 0; flex: 1; }
 .chip { font: 600 12px var(--body); background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; cursor: pointer; }
@@ -150,6 +164,10 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
       <table class="runs"><tbody id="runs"></tbody></table>
     </div>
   </aside>
+  <section id="sched" class="card">
+    <div class="bhead"><h2>WEEKLY SCHEDULE</h2><span id="schedbadge" class="badge"></span></div>
+    <div id="schedbody" class="muted">Loading…</div>
+  </section>
   <section id="board" class="card">
     <div class="bhead">
       <h2>PROJECT BOARD</h2>
@@ -194,7 +212,7 @@ const overlay = document.getElementById("overlay");
 const px = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
 
 // ---------- state ----------
-const S = { agents: new Map(), events: [], runs: [], tasks: [], selected: null, bubbles: new Map() };
+const S = { agents: new Map(), events: [], runs: [], tasks: [], schedule: null, selected: null, bubbles: new Map() };
 const STATUS_COLOR = { working: "var(--work)", waiting: "var(--wait)", idle: "var(--idle)", error: "var(--err)", offline: "var(--off)" };
 const STALE_MS = 25 * 60 * 1000;
 const manilaDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
@@ -441,17 +459,48 @@ function renderDetail() {
   el.classList.remove("muted");
 }
 function select(id) { S.selected = id; renderRoster(); }
-function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); }
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+function weekDates() {                          // Mon..Sun of this week in Manila, as YYYY-MM-DD
+  const d = new Date(manilaDay() + "T00:00:00Z"), wd = (d.getUTCDay() + 6) % 7;
+  return DAYS.map((_, i) => new Date(d.getTime() + (i - wd) * 86400000).toISOString().slice(0, 10));
+}
+function renderSchedule() {
+  const sc = S.schedule, body = document.getElementById("schedbody"), badge = document.getElementById("schedbadge");
+  if (!sc) { body.textContent = "The schedule appears after sign-in."; badge.textContent = ""; return; }
+  const F = sc.formats || {}, label = k => F[k]?.label || k || "-";
+  badge.textContent = sc.evening_live ? "2 videos a day" : "Evening slot starts after the test videos are approved";
+  const today = manilaDay(), dates = weekDates();
+  const cell = (planned, run, later) => {
+    let note = "";
+    if (run?.format) note = run.format === planned ? `<div class="snote made">✓ ${esc(run.title || "made")}</div>`
+      : `<div class="snote swap">Changed for the day → ${esc(label(run.format))}${run.title ? ": " + esc(run.title) : ""}</div>`;
+    return `<td class="${later ? "later" : ""}"><div class="stype">${esc(label(planned))}</div>${note}</td>`;
+  };
+  const rows = DAYS.map((d, i) => {
+    const date = dates[i], am = S.runs.find(r => r.day === date), pm = S.runs.find(r => r.day === date + "-pm");
+    return `<tr class="${date === today ? "today" : ""}"><td>${d}<div class="snote">${date.slice(5)}</div></td>
+      ${cell(sc.grid?.morning?.[d], am, false)}${cell(sc.grid?.evening?.[d], pm, !sc.evening_live)}</tr>`;
+  }).join("");
+  const et = sc.go_live_et || {};
+  const group = slot => Object.values(F).filter(f => f.slot === slot).map(f => `<p><b>${esc(f.label)}</b> - ${esc(f.summary)}</p>`).join("");
+  body.classList.remove("muted");
+  body.innerHTML = `<table class="sgrid"><thead><tr><th>DAY</th><th>MORNING · ${esc(et.morning || "06:00")} ET</th><th>EVENING · ${esc(et.evening || "18:00")} ET</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
+}
+function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); }
 
 // ---------- data ----------
 async function load() {
-  const [a, e, r, t] = await Promise.all([
+  const [a, e, r, t, sc] = await Promise.all([
     sb.from("agents").select("*"), sb.from("events").select("*").order("at", { ascending: false }).limit(60),
     sb.from("runs").select("*").order("day", { ascending: false }).limit(30), sb.from("tasks").select("*"),
+    sb.from("schedule").select("data").eq("id", "current").maybeSingle(),
   ]);
-  const err = a.error || e.error || r.error || t.error;
+  const err = a.error || e.error || r.error || t.error || sc.error;
   if (err) throw err;
   S.agents = new Map(a.data.map(x => [x.id, x])); S.events = e.data; S.runs = r.data; S.tasks = t.data;
+  S.schedule = sc.data?.data || null;
   renderAll();
 }
 let channel;
@@ -461,7 +510,8 @@ function subscribe() {
   channel = sb.channel("office")
     .on("postgres_changes", { event: "*", schema: "public", table: "agents" }, p => { if (p.new?.id) S.agents.set(p.new.id, p.new); renderRoster(); renderTasks(); })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "events" }, p => { S.events.unshift(p.new); say(p.new.agent, p.new.message); renderFeed(); })
-    .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => { if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => { if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "schedule" }, p => { if (p.new?.data) { S.schedule = p.new.data; renderSchedule(); } })
     .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, p => {
       if (p.eventType === "DELETE") S.tasks = S.tasks.filter(x => x.id !== p.old.id); else upsert(S.tasks, p.new, "id"); renderTasks(); })
     .subscribe(status => {
@@ -510,8 +560,9 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
              ...Array.from({ length: 11 }, (_, k) => ({ id: "d" + (k + 3), num: k + 3, title: `Demo finished task ${k + 3}`, detail: "Example only.",
                area: "Infrastructure", owner: k % 2 ? "You" : "Claude", status: "done", done_on: `2026-09-${String(20 + (k % 9)).padStart(2, "0")}`, sort: k })),
              { id: "d20", num: 20, title: "Demo backlog idea", detail: "Example only.", area: "Channel", owner: "You", status: "backlog", sort: 2 }];
+  fetch("schedule.json").then(r => r.ok ? r.json() : null).then(j => { S.schedule = j; renderSchedule(); }).catch(() => {});
   let i = 0;
-  const stages = ["planning", "writing", "writing", "writing", "narrating", "rendering", "awaiting_approval", "scheduled"];
+  const stages =["planning", "writing", "writing", "writing", "narrating", "rendering", "awaiting_approval", "scheduled"];
   const tick = () => {
     S.agents.forEach(a => { if (a.id !== "boss") { a.status = "idle"; a.activity = "Waiting for work"; } });
     const [id, st, act] = script[i % script.length];
