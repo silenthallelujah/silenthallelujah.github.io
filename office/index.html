@@ -60,6 +60,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .todo:first-of-type { border-top: 0; }
 .todo .t { font-weight: 600; }
 .todo .d { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.num { font: 9px var(--pixel); color: var(--gold); margin-right: 6px; }
 .badge { font: 600 10px var(--body); padding: 1px 6px; border-radius: 3px; background: var(--panel2); color: var(--muted); margin-right: 6px; }
 details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted); }
 .runs { width: 100%; border-collapse: collapse; }
@@ -342,8 +343,8 @@ function renderToday() {
   }).join("");
 }
 function renderTasks() {
-  const open = S.tasks.filter(t => t.status !== "done").sort((a, b) => a.sort - b.sort);
-  const row = t => `<div class="todo"><div class="t"><span class="badge">${esc(t.area)}</span>${esc(t.title)}
+  const open = S.tasks.filter(t => t.status !== "done").sort((a, b) => a.num - b.num);
+  const row = t => `<div class="todo"><div class="t"><span class="num">#${t.num}</span><span class="badge">${esc(t.area)}</span>${esc(t.title)}
       <span class="pill st-${t.status === "doing" ? "working" : t.status === "waiting" ? "waiting" : "idle"}">${esc(t.status)}</span></div>
       <div class="d">${esc(t.detail)}</div></div>`;
   const mine = open.filter(t => t.owner === "You"), claude = open.filter(t => t.owner === "Claude");
@@ -353,7 +354,7 @@ function renderTasks() {
   document.getElementById("claude").innerHTML = claude.map(row).join("") || `<p class="muted">Queue is empty.</p>`;
   document.getElementById("done").innerHTML = S.tasks.filter(t => t.status === "done")
     .sort((a, b) => (b.done_on || "").localeCompare(a.done_on || "")).slice(0, 12)
-    .map(t => `<div class="todo"><div class="t">${esc(t.title)}</div><div class="d">${esc(t.done_on || "")}</div></div>`).join("");
+    .map(t => `<div class="todo"><div class="t"><span class="num">#${t.num}</span>${esc(t.title)}</div><div class="d">${esc(t.done_on || "")}</div></div>`).join("");
 }
 const ICON = { youtube: "YouTube", facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok" };
 function renderRuns() {
@@ -454,8 +455,8 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   const now = () => new Date().toISOString();
   Object.entries(names).forEach(([id, [name, role]]) => S.agents.set(id, { id, name, role, status: "idle", activity: "Demo", updated_at: now() }));
   S.runs = [{ day: manilaDay(), title: "Demo: Singing Praise Before the Angels", format: "psalm", stage: "planning", links: {} }];
-  S.tasks = [{ id: "d1", title: "Demo task waiting on you", detail: "Example only.", area: "Publishing", owner: "You", status: "waiting", sort: 1 },
-             { id: "d2", title: "Demo task for Claude", detail: "Example only.", area: "Visuals", owner: "Claude", status: "doing", sort: 1 }];
+  S.tasks = [{ id: "d1", num: 1, title: "Demo task waiting on you", detail: "Example only.", area: "Publishing", owner: "You", status: "waiting", sort: 1 },
+             { id: "d2", num: 2, title: "Demo task for Claude", detail: "Example only.", area: "Visuals", owner: "Claude", status: "doing", sort: 1 }];
   let i = 0;
   const stages = ["planning", "writing", "writing", "writing", "narrating", "rendering", "awaiting_approval", "scheduled"];
   const tick = () => {
