@@ -36,6 +36,17 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .tag { position: absolute; transform: translate(-50%, 0); font: 600 clamp(8px, 1.15vw, 11px)/1 var(--body); background: rgba(10,10,18,.8);
        color: var(--ink); padding: 2px 5px; border-radius: 3px; white-space: nowrap; pointer-events: auto; cursor: pointer; border: 1px solid transparent; }
 @media (max-width: 600px) { .tag { padding: 1px 3px; font-size: 8px; } .tag i { width: 5px !important; height: 5px !important; margin-right: 2px !important; } header h1 { font-size: 10px; } }
+.tag[data-role]:hover::after { content: attr(data-role); position: absolute; left: 50%; top: calc(100% + 4px); transform: translateX(-50%);
+  background: var(--gold); color: #1b1a24; font: 600 11px var(--body); padding: 3px 7px; border-radius: 4px; white-space: nowrap; z-index: 5; }
+.pcpill { margin-left: 10px; font-size: 12px; } .pcpill i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+.pcpill.ok i { background: var(--work); } .pcpill.warn i { background: var(--wait); } .pcpill.bad i { background: var(--err); box-shadow: 0 0 8px var(--err); }
+.pcpill.bad { color: var(--err); font-weight: 600; }
+#alerts { max-width: 1180px; margin: 12px auto 0; padding: 0 16px; }
+#alerts .al { background: #3a1518; border: 2px solid var(--err); color: #ffd6d6; border-radius: 6px; padding: 9px 12px; margin-bottom: 8px; font-size: 13.5px; }
+#alerts .al b { color: #fff; } #alerts .al.warn { background: #3a2f12; border-color: var(--wait); color: #ffeab0; }
+.appr { border: 1px solid var(--line); border-left: 4px solid var(--work); border-radius: 5px; padding: 7px 9px; margin-bottom: 8px; font-size: 13px; }
+.appr .cd { font: 10px/1.8 var(--pixel); } .appr.amber { border-left-color: var(--wait); } .appr.amber .cd { color: var(--wait); }
+.appr.red { border-left-color: var(--err); } .appr.red .cd { color: var(--err); }
 .tag i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
 .tag.sel { border-color: var(--gold); }
 .bubble { position: absolute; transform: translate(-50%, -100%); max-width: 34%; background: #fffdf5; color: #1b1a24; font: 600 clamp(8px, 1.1vw, 11px)/1.25 var(--body);
@@ -51,10 +62,10 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .st-error { background: var(--err); } .st-offline { background: var(--off); color: #ddd; }
 .steps { list-style: none; margin: 0; padding: 0; }
 .steps li { display: flex; align-items: center; gap: 10px; padding: 5px 0; color: var(--muted); }
-.steps li b { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--line); flex: none; display: grid; place-items: center; font-size: 11px; }
-.steps li.done { color: var(--ink); } .steps li.done b { background: var(--work); border-color: var(--work); color: #111; }
-.steps li.now { color: var(--gold); font-weight: 600; } .steps li.now b { border-color: var(--gold); animation: blink 1s steps(2) infinite; }
-.steps li.bad b { background: var(--err); border-color: var(--err); }
+.steps li > b { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--line); flex: none; display: grid; place-items: center; font-size: 11px; }
+.steps li.done { color: var(--ink); } .steps li.done > b { background: var(--work); border-color: var(--work); color: #111; }
+.steps li.now { color: var(--gold); font-weight: 600; } .steps li.now > b { border-color: var(--gold); animation: blink 1s steps(2) infinite; }
+.steps li.bad > b { background: var(--err); border-color: var(--err); }
 @keyframes blink { 50% { background: var(--gold); } }
 .todo { border-top: 1px solid var(--line); padding: 8px 0; }
 .todo:first-of-type { border-top: 0; }
@@ -123,11 +134,13 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
   <img src="../logo.png" alt="">
   <div class="grow">
     <h1>SILENT HALLELUJAH OFFICE</h1>
-    <div class="sub"><span id="live"></span><span id="livetxt">Connecting…</span></div>
+    <div class="sub"><span id="live"></span><span id="livetxt">Connecting…</span>
+      <span id="pc" class="pcpill hide"><i></i><span></span></span></div>
   </div>
   <div><div id="clock"></div><button id="signout" class="ghost hide">Sign out</button></div>
 </header>
 
+<div id="alerts" class="hide"></div>
 <main>
   <section class="col">
     <div id="stage">
@@ -160,6 +173,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
     </div>
     <div class="card">
       <h2>WAITING ON YOU</h2>
+      <div id="approvals"></div>
       <div id="mine"></div>
     </div>
     <div class="card">
@@ -220,7 +234,8 @@ const overlay = document.getElementById("overlay");
 const px = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h); };
 
 // ---------- state ----------
-const S = { agents: new Map(), events: [], runs: [], tasks: [], schedule: null, selected: null, bubbles: new Map() };
+const S = { agents: new Map(), events: [], runs: [], tasks: [], schedule: null, heartbeat: {}, approvalAlert: null,
+            selected: null, bubbles: new Map() };
 const STATUS_COLOR = { working: "var(--work)", waiting: "var(--wait)", idle: "var(--idle)", error: "var(--err)", offline: "var(--off)" };
 const STALE_MS = 25 * 60 * 1000;
 const manilaDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
@@ -361,6 +376,7 @@ function placeOverlay(t) {
     const full = a?.name || id, label = overlay.clientWidth < 560 ? full.split(" ").pop() : full;   // "Brother Luke" -> "Luke" on phones
     const html = `<i style="background:${STATUS_COLOR[st]}"></i>${esc(label)}`;
     if (tg.innerHTML !== html) tg.innerHTML = html;
+    if (a?.role && tg.dataset.role !== a.role) tg.dataset.role = a.role;          // hover shows the role
     tg.style.left = pct(p.x + 5, W); tg.style.top = pct(p.y + (id === "boss" ? 25 : 27), H);
     tg.classList.toggle("sel", S.selected === id);
     const b = bubbleEls[id], msg = S.bubbles.get(id);
@@ -473,14 +489,76 @@ function renderDetail() {
 function select(id) { S.selected = id; renderRoster(); }
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const clock12 = (h, m) => `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
-function etPht(hhmm, day = manilaDay()) {      // "06:00" -> "6:00 AM ET (6:00 PM PHT)"; follows US daylight saving
+function etUtc(hhmm, day) {                    // hh:mm US Eastern on YYYY-MM-DD -> epoch ms (follows US daylight saving)
   const [h, m] = hhmm.split(":").map(Number);
   let utc = Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10), h + 4, m);   // EDT guess
   const ny = +new Intl.DateTimeFormat("en-GB", { timeZone: "America/New_York", hour: "2-digit", hour12: false }).format(new Date(utc));
-  if (ny % 24 !== h) utc += 3600000;                                                              // EST: one hour later
-  const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit", hour12: false })
-    .format(new Date(utc)).split(":").map(Number);
-  return `${clock12(h, m)} ET (${clock12(p[0] % 24, p[1])} PHT)`;
+  return ny % 24 !== h ? utc + 3600000 : utc;                                                   // EST: one hour later
+}
+const phtClock = ms => { const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit",
+  hour12: false }).format(new Date(ms)).split(":").map(Number); return `${clock12(p[0] % 24, p[1])} PHT`; };
+const phtWhen = ms => {                         // "5:45 PM PHT", or "Thu 5:45 AM PHT" when it isn't today in Manila
+  const d = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date(ms));
+  const wd = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", weekday: "short" }).format(new Date(ms));
+  return (d === manilaDay() ? "" : wd + " ") + phtClock(ms);
+};
+function etPht(hhmm, day = manilaDay()) {      // "06:00" -> "6:00 AM ET (6:00 PM PHT)"
+  const [h, m] = hhmm.split(":").map(Number);
+  return `${clock12(h, m)} ET (${phtClock(etUtc(hhmm, day))})`;
+}
+function goLiveMs(key) {                        // video key -> go-live epoch ms ("2026-09-30" morning, "...-pm" evening)
+  const k = key.replace(/^test-/, ""), evening = k.endsWith("-pm"), day = evening ? k.slice(0, -3) : k;
+  const et = S.schedule?.go_live_et || { morning: "06:00", evening: "18:00" };
+  return etUtc(evening ? et.evening : et.morning, day);
+}
+const LEAD_MS = 15 * 60 * 1000;                 // YouTube/Facebook need 15 min to schedule
+const span = ms => { const m = Math.max(0, Math.round(ms / 60000)); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} m` : `${m} min`; };
+function renderApprovals() {
+  const el = document.getElementById("approvals");
+  if (!el) return;
+  const now = Date.now();
+  const pending = S.runs.filter(r => r.stage === "awaiting_approval" && !/^test-/.test(r.day))
+    .map(r => ({ r, live: goLiveMs(r.day) })).sort((a, b) => a.live - b.live);
+  el.innerHTML = pending.map(({ r, live }) => {
+    const left = live - LEAD_MS - now, evening = r.day.endsWith("-pm");
+    const cls = left <= 0 ? "red" : left < 3600000 ? "red" : left < 3 * 3600000 ? "amber" : "";
+    const cd = left > 0 ? `APPROVE WITHIN ${span(left).toUpperCase()}` : "LATE - POSTS AS SOON AS YOU APPROVE";
+    return `<div class="appr ${cls}"><div class="cd">${cd}</div>${evening ? "🌙 Evening" : "☀️ Morning"}: <b>${esc(r.title || "untitled")}</b>
+      <div class="muted">Approve by ${phtWhen(live - LEAD_MS)} · goes live ${phtWhen(live)}</div></div>`;
+  }).join("");
+  S.approvalAlert = pending.find(p => p.live - LEAD_MS - now < 3600000) || null;
+  return pending.length;
+}
+const HB_STALE_MS = 30 * 60 * 1000;
+function renderHealth() {
+  const pc = document.getElementById("pc"), al = document.getElementById("alerts"), now = Date.now();
+  if (!S.agents.size) { pc.classList.add("hide"); al.classList.add("hide"); return; }
+  const hb = id => S.heartbeat[id], age = id => hb(id) ? now - new Date(hb(id).at) : Infinity;
+  const sch = age("scheduler"), lis = age("listener"), alerts = [];
+  const cls = sch > HB_STALE_MS ? "bad" : lis > HB_STALE_MS ? "warn" : "ok";
+  pc.className = `pcpill ${cls}`;
+  pc.lastElementChild.textContent = sch === Infinity ? "Mini PC: no check-in yet"
+    : sch > HB_STALE_MS ? `Mini PC: silent for ${span(sch)}` : `Mini PC online · checked in ${span(sch)} ago`;
+  pc.title = `Scheduler: ${hb("scheduler") ? ago(hb("scheduler").at) : "never"} · Telegram listener: ${hb("listener") ? ago(hb("listener").at) : "never"}`
+    + (hb("scheduler")?.info?.disk_free_gb != null ? ` · ${hb("scheduler").info.disk_free_gb} GB free` : "");
+  if (sch > HB_STALE_MS) alerts.push(["", `<b>The mini PC hasn't checked in for ${sch === Infinity ? "a long time" : span(sch)}.</b>
+    It may be off, asleep, restarting or offline - videos won't be made or posted until it's back.`]);
+  if (lis > HB_STALE_MS && sch <= HB_STALE_MS) alerts.push(["warn", `<b>The Telegram listener isn't responding</b> (last seen
+    ${hb("listener") ? ago(hb("listener").at) : "never"}). Button taps will wait until it restarts.`]);
+  S.agents.forEach(a => {
+    if (effStatus(a) !== "error") return;
+    const stuck = a.status === "working";
+    alerts.push(["", `<b>${esc(a.name)} (${esc(a.role)})</b> ${stuck ? "seems stuck" : "reported a problem"}: ${esc(a.activity)}
+      <span class="muted">· ${ago(a.updated_at)}${a.day ? ` · video ${esc(a.day)}` : ""}</span>`]);
+  });
+  if (S.approvalAlert) {
+    const left = S.approvalAlert.live - LEAD_MS - now;
+    alerts.push([left > 0 ? "warn" : "", left > 0
+      ? `<b>Approve "${esc(S.approvalAlert.r.title || "the next video")}" within ${span(left)}</b> to post it on schedule.`
+      : `<b>"${esc(S.approvalAlert.r.title || "A video")}" missed its scheduled time</b> - it will post as soon as you approve it in Telegram.`]);
+  }
+  al.innerHTML = alerts.map(([c, h]) => `<div class="al ${c}">${h}</div>`).join("");
+  al.classList.toggle("hide", !alerts.length);
 }
 function weekDates() {                          // Mon..Sun of this week in Manila, as YYYY-MM-DD
   const d = new Date(manilaDay() + "T00:00:00Z"), wd = (d.getUTCDay() + 6) % 7;
@@ -510,17 +588,18 @@ function renderSchedule() {
     <tbody>${rows}</tbody></table>
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
-function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); }
+function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); }
 
 // ---------- data ----------
 async function load() {
-  const [a, e, r, t, sc] = await Promise.all([
+  const [a, e, r, t, sc, hb] = await Promise.all([
     sb.from("agents").select("*"), sb.from("events").select("*").order("at", { ascending: false }).limit(60),
     sb.from("runs").select("*").order("day", { ascending: false }).limit(30), sb.from("tasks").select("*"),
-    sb.from("schedule").select("data").eq("id", "current").maybeSingle(),
+    sb.from("schedule").select("data").eq("id", "current").maybeSingle(), sb.from("heartbeat").select("*"),
   ]);
-  const err = a.error || e.error || r.error || t.error || sc.error;
+  const err = a.error || e.error || r.error || t.error || sc.error || hb.error;
   if (err) throw err;
+  S.heartbeat = Object.fromEntries(hb.data.map(x => [x.id, x]));
   S.agents = new Map(a.data.map(x => [x.id, x])); S.events = e.data; S.runs = r.data; S.tasks = t.data;
   S.schedule = sc.data?.data || null;
   renderAll();
@@ -530,10 +609,11 @@ function subscribe() {
   channel?.unsubscribe();
   const upsert = (list, row, key) => { const i = list.findIndex(x => x[key] === row[key]); if (i >= 0) list[i] = row; else list.push(row); };
   channel = sb.channel("office")
-    .on("postgres_changes", { event: "*", schema: "public", table: "agents" }, p => { if (p.new?.id) S.agents.set(p.new.id, p.new); renderRoster(); renderTasks(); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "agents" }, p => { if (p.new?.id) S.agents.set(p.new.id, p.new); renderRoster(); renderTasks(); renderHealth(); })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "events" }, p => { S.events.unshift(p.new); say(p.new.agent, p.new.message); renderFeed(); })
-    .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => { if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => { if (p.new?.day) upsert(S.runs, p.new, "day"); S.runs.sort((x, y) => y.day.localeCompare(x.day)); renderToday(); renderRuns(); renderSchedule(); renderApprovals(); renderHealth(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "schedule" }, p => { if (p.new?.data) { S.schedule = p.new.data; renderSchedule(); } })
+    .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); } })
     .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, p => {
       if (p.eventType === "DELETE") S.tasks = S.tasks.filter(x => x.id !== p.old.id); else upsert(S.tasks, p.new, "id"); renderTasks(); })
     .subscribe(status => {
@@ -585,6 +665,11 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
              ...Array.from({ length: 6 }, (_, k) => ({ id: "q" + k, num: 21 + k, title: `Demo queued task ${21 + k} with a longer title`,
                detail: "Example only. ".repeat(12), area: "Editorial", owner: "Claude", status: "backlog", sort: 3 + k }))];
   fetch("schedule.json").then(r => r.ok ? r.json() : null).then(j => { S.schedule = j; renderSchedule(); }).catch(() => {});
+  const alertsDemo = new URLSearchParams(location.search).get("demo") === "alerts";   // ?demo=alerts previews the warnings
+  S.heartbeat = { scheduler: { at: new Date(Date.now() - (alertsDemo ? 45 : 3) * 60000).toISOString(), info: { disk_free_gb: 142.6 } },
+                  listener: { at: new Date().toISOString(), info: {} } };
+  S.runs.push({ day: manilaDay() + "-pm", title: "Demo: In Peace I Will Lie Down and Sleep", format: "night_prayer",
+                stage: "awaiting_approval", links: {} });
   let i = 0;
   const stages =["planning", "writing", "writing", "writing", "narrating", "rendering", "awaiting_approval", "scheduled"];
   const tick = () => {
@@ -593,6 +678,7 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
     Object.assign(S.agents.get(id), { status: st, activity: act, updated_at: now() });
     S.agents.get("producer").status = "working";
     S.agents.get("boss").status = id === "clerk" ? "waiting" : "idle";
+    if (alertsDemo) Object.assign(S.agents.get("social"), { status: "error", activity: "Demo: Instagram failed - retrying next run" });
     S.runs[0].stage = stages[i % stages.length];
     S.events.unshift({ at: now(), agent: id, kind: "start", message: act });
     say(id, act); i++; renderAll();
@@ -611,6 +697,7 @@ setInterval(() => {
   if (S.selected) renderDetail();
 }, 1000);
 setInterval(() => { renderToday(); renderRoster(); }, 60000);          // staleness + day rollover
+setInterval(() => { renderApprovals(); renderHealth(); }, 30000);      // countdowns + "mini PC alive" ageing
 requestAnimationFrame(draw);
 </script>
 </body>
