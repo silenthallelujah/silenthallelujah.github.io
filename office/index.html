@@ -76,6 +76,7 @@ body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right
 .bigp { width: 72px; height: 72px; flex: none; border-radius: 50%; border: 3px solid; background: #34304a; image-rendering: pixelated;
         object-fit: cover; object-position: 50% 20%; }
 @media (max-width: 600px) { .ag { width: 64px; } .ag img { width: 42px; height: 42px; } }
+.wxpill { margin-left: 6px; font-size: 12px; color: var(--muted); }
 .seasonpill { margin-left: 10px; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--season, var(--line)); }
 header { border-bottom-color: var(--season, var(--line)) !important; }
 #stage { border-color: var(--season, var(--line)) !important; }
@@ -190,7 +191,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
     <h1>SILENT HALLELUJAH OFFICE</h1>
     <div class="sub"><span id="live"></span><span id="livetxt">Connecting…</span>
       <span id="pc" class="pcpill hide"><i></i><span></span></span>
-      <span id="season" class="seasonpill"></span></div>
+      <span id="season" class="seasonpill"></span> <span id="wx" class="wxpill"></span></div>
   </div>
   <div><div id="clock"></div><button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
 </header>
@@ -319,19 +320,63 @@ function effStatus(a) {
 const WINDOWS = { NEWSROOM: [15, 66], BOSS: [368, 434], STUDIO: [], "FRONT DESK": [202], SOCIAL: [] };
 function disc(cx, cy, r, c) { for (let dy = -r; dy <= r; dy++) { const w = Math.round(Math.sqrt(r * r - dy * dy)); px(cx - w, cy + dy, 2 * w + 1, 1, c); } }
 function line(x0, y0, x1, y1, c) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1; for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, c); }
-function drawRoom(r, night) {
+function drawRoom(r, night, t) {
   for (let y = r.y + 21; y < r.y + r.h; y += 9)
     for (let x = r.x; x < r.x + r.w; x += 9) px(x, y, 9, 9, r.floor[((x - r.x) / 9 + (y - r.y) / 9) & 1]);
   px(r.x, r.y, r.w, 21, r.wall);
   px(r.x, r.y + 19, r.w, 2, "rgba(0,0,0,.28)");                    // skirting shadow
-  for (const wx of WINDOWS[r.name] || []) {                          // windows show the Manila sky
+  for (const wx of WINDOWS[r.name] || []) {                          // windows show the real Manila sky
     px(wx, r.y + 3, 26, 14, "#1b1b1b");
-    px(wx + 1, r.y + 4, 24, 12, night ? "#1d2951" : "#8ecae6");
-    if (night) { disc(wx + 19, r.y + 8, 2, "#fdf6d8"); px(wx + 5, r.y + 6, 1, 1, "#fff"); px(wx + 10, r.y + 11, 1, 1, "#fff"); }
-    else { px(wx + 4, r.y + 7, 7, 3, "#fff"); px(wx + 6, r.y + 6, 4, 1, "#fff"); }
+    drawSky(wx + 1, r.y + 4, night, t);
     px(wx + 12, r.y + 4, 2, 12, "#1b1b1b"); px(wx + 1, r.y + 9, 24, 1, "#1b1b1b");
     px(wx - 1, r.y + 17, 28, 2, "#8d6e63");                          // sill
   }
+}
+// ---------- real Manila weather (Open-Meteo, free, no key) ----------
+const WX = { kind: null, temp: null, at: 0 };
+function wxKind(code) {                          // WMO weather code -> what the windows show
+  if (code >= 95) return "storm";
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
+  if (code === 45 || code === 48) return "fog";
+  if (code >= 2) return "cloudy";
+  return "clear";
+}
+async function fetchWeather() {
+  try {
+    const r = await fetch("https://api.open-meteo.com/v1/forecast?latitude=14.5995&longitude=120.9842&current=temperature_2m,weather_code&timezone=Asia%2FManila");
+    const j = await r.json();
+    Object.assign(WX, { kind: wxKind(j.current.weather_code), temp: Math.round(j.current.temperature_2m), at: Date.now() });
+  } catch { /* offline: keep the last sky */ }
+  paintWeather();
+}
+function paintWeather() {
+  const el = document.getElementById("wx"), kind = new URLSearchParams(location.search).get("wx") || WX.kind;
+  if (!el || !kind) return;
+  const icon = { clear: "☀️", cloudy: "☁️", fog: "🌫️", rain: "🌧️", storm: "⛈️" }[kind] || "☁️";
+  el.textContent = `${icon} ${WX.temp != null ? WX.temp + "°C " : ""}Manila`;
+  el.title = `Manila weather now: ${kind}${WX.at ? " · updated " + ago(WX.at) : ""}`;
+}
+function drawSky(x, y, night, t) {                // 24x12 window pane
+  const kind = new URLSearchParams(location.search).get("wx") || WX.kind || "clear";
+  const base = night ? { clear: "#1d2951", cloudy: "#262f45", fog: "#3a4150", rain: "#20283a", storm: "#161c2b" }
+                     : { clear: "#8ecae6", cloudy: "#a7b4c2", fog: "#cfd6dd", rain: "#6c7a89", storm: "#4a5568" };
+  const flash = kind === "storm" && (t % 5200) < 120;                  // lightning
+  G.save(); G.beginPath(); G.rect(x, y, 24, 12); G.clip();              // clouds and rain stay inside the pane
+  px(x, y, 24, 12, flash ? "#e9f1ff" : base[kind] || base.clear);
+  if (kind === "clear") {
+    if (night) { disc(x + 18, y + 4, 2, "#fdf6d8"); px(x + 4, y + 2, 1, 1, "#fff"); px(x + 9, y + 7, 1, 1, "#fff"); px(x + 13, y + 3, 1, 1, "#fff"); }
+    else { disc(x + 18, y + 4, 2, "#ffd60a"); px(x + 3, y + 3, 7, 3, "#fff"); px(x + 5, y + 2, 4, 1, "#fff"); }
+  } else if (kind === "cloudy" || kind === "rain" || kind === "storm") {
+    const drift = ((t / 180) | 0) % 30, cl = night ? "#4a5468" : kind === "cloudy" ? "#eef2f6" : "#8d99ae";
+    [[0, 2], [14, 5]].forEach(([dx, dy]) => { const cx = x + ((dx + drift) % 30) - 4; px(cx, y + dy, 9, 3, cl); px(cx + 2, y + dy - 1, 5, 1, cl); });
+    if (kind !== "cloudy") for (let i = 0; i < 8; i++) {                // falling rain
+      const rx = x + ((i * 7 + (t >> 5)) % 24), ry = y + ((i * 5 + (t >> 4)) % 12);
+      px(rx, ry, 1, 2, night ? "#7f9cc9" : "#dbeafe");
+    }
+  } else if (kind === "fog") {
+    for (let i = 0; i < 3; i++) px(x + ((i * 9 + (t >> 7)) % 24) - 4, y + 3 + i * 3, 12, 1, "rgba(255,255,255,.7)");
+  }
+  G.restore();
 }
 function drawWalls() {
   const wall = "#1a1a24";
@@ -858,7 +903,7 @@ function drawLighting(t) {                     // dawn/dusk warmth, night darkne
 function draw(t) {
   const night = !FORCE_DAY && (manilaHour() < 6 || manilaHour() >= 18);
   g.clearRect(0, 0, W, H);
-  ROOMS.forEach(r => drawRoom(r, night));
+  ROOMS.forEach(r => drawRoom(r, night, t));
   drawWalls(); drawDecor(t); drawSeason(t);
   const dt = Math.min(100, t - (draw.last || t)); draw.last = t;
   idleTick(t);
@@ -1390,6 +1435,7 @@ setInterval(() => {
 setInterval(() => { renderToday(); renderRoster(); }, 60000);          // staleness + day rollover
 setInterval(() => { renderApprovals(); renderHealth(); }, 30000);      // countdowns + "mini PC alive" ageing
 requestAnimationFrame(draw);
+fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);                  // real Manila weather in the windows
 </script>
 </body>
 </html>
