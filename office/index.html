@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-09-30 11:56">
+<meta name="build" content="2026-09-30 19:13">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -638,7 +638,7 @@ function handoffTarget(e) {
   if (e.agent === "clerk") return m.includes("sofia") ? "social" : m.includes("wren") ? "writer" : "boss";
   if (e.agent === "producer" && m.includes("software team")) return "lead";     // Priya escalates a problem
   if (e.agent === "lead") return m.includes("devin") ? "developer" : m.includes("boss") ? "boss" : null;
-  if (e.agent === "developer") return "tester";
+  if (e.agent === "developer") return m.includes("joseph") ? "lead" : "tester";   // stuck -> asks Joseph
   if (e.agent === "tester") return m.includes("devin") ? "developer" : "lead";
   return NEXT[e.agent] || null;
 }
