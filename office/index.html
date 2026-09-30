@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-09-30 11:50">
+<meta name="build" content="2026-09-30 11:56">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -64,7 +64,9 @@ body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right
   font: 600 clamp(11px, 1.6vh, 20px) var(--body); color: var(--ink); white-space: nowrap; overflow: hidden; }
 #tvbar #tvclock { font-family: var(--pixel); font-size: clamp(9px, 1.4vh, 16px); color: var(--gold); }
 #tvbar #tvexit { margin-left: auto; }
-#roster { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 3px; }   /* always one row */
+#roster .team { font: 10px var(--pixel); letter-spacing: .5px; color: var(--muted); margin: 6px 0 3px 2px; }
+#roster .team:first-child { margin-top: 0; }
+#roster .row { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; }   /* one row per team, same portrait size */
 .ag { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 6px 1px 5px; border-radius: 8px;
       border: 1px solid transparent; cursor: pointer; text-align: center; }
 .ag:hover, .ag.sel { background: var(--panel2); border-color: var(--line); }
@@ -1225,13 +1227,16 @@ function portrait(id) {                          // head + shoulders from the ag
 }
 const ROLE_SHORT = { boss: "Owner (you)", producer: "Producer" };
 function renderRoster() {
-  document.getElementById("roster").innerHTML = Object.keys(CAST).map(id => {
+  const card = id => {
     const a = S.agents.get(id), st = effStatus(a);
     return `<div class="ag${S.selected === id ? " sel" : ""}" data-id="${id}" title="${esc(a?.role || "")}">
       <img src="${portrait(id)}" alt="" style="border-color:${STATUS_COLOR[st]}">
       <div class="n"><i style="background:${STATUS_COLOR[st]}"></i>${esc(a?.name || id)}</div>
       <div class="r">${esc(ROLE_SHORT[id] || a?.role || "")}</div></div>`;
-  }).join("");
+  };
+  const ids = Object.keys(CAST), sw = ids.filter(id => ROOM_OF[id] === "SOFTWARE");
+  document.getElementById("roster").innerHTML = [["Video team", ids.filter(id => !sw.includes(id))], ["Software team", sw]]
+    .map(([label, row]) => `<div class="team">${label}</div><div class="row">${row.map(card).join("")}</div>`).join("");
   document.querySelectorAll("#roster [data-id]").forEach(el => el.onclick = () => select(el.dataset.id));
   const counts = { working: 0, waiting: 0, idle: 0, error: 0 };
   S.agents.forEach(a => { const s = effStatus(a); if (s in counts) counts[s]++; });
