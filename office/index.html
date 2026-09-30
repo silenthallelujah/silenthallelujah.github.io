@@ -63,13 +63,13 @@ body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right
   font: 600 clamp(11px, 1.6vh, 20px) var(--body); color: var(--ink); white-space: nowrap; overflow: hidden; }
 #tvbar #tvclock { font-family: var(--pixel); font-size: clamp(9px, 1.4vh, 16px); color: var(--gold); }
 #tvbar #tvexit { margin-left: auto; }
-#roster { display: flex; flex-wrap: wrap; gap: 6px; }
-.ag { display: flex; flex-direction: column; align-items: center; width: 78px; padding: 6px 2px 5px; border-radius: 8px;
+#roster { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; }   /* always one row */
+.ag { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 6px 1px 5px; border-radius: 8px;
       border: 1px solid transparent; cursor: pointer; text-align: center; }
 .ag:hover, .ag.sel { background: var(--panel2); border-color: var(--line); }
-.ag img { width: 50px; height: 50px; border-radius: 50%; border: 3px solid; background: #34304a; image-rendering: pixelated;
-          object-fit: cover; object-position: 50% 20%; }
-.ag .n { font: 600 12.5px/1.2 var(--body); margin-top: 4px; white-space: nowrap; }
+.ag img { width: min(50px, 88%); aspect-ratio: 1; height: auto; border-radius: 50%; border: 3px solid; background: #34304a;
+          image-rendering: pixelated; object-fit: cover; object-position: 50% 20%; }
+.ag .n { font: 600 12.5px/1.2 var(--body); margin-top: 4px; overflow-wrap: anywhere; }
 .ag .n i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
 .ag .r { font-size: 10.5px; line-height: 1.2; color: var(--muted); margin-top: 1px; }
 .dwrap { display: flex; gap: 12px; align-items: center; }
@@ -81,7 +81,7 @@ body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right
 .claude-mark { color: #d97757; margin-right: 3px; font-weight: 700; }
 .bigp { width: 72px; height: 72px; flex: none; border-radius: 50%; border: 3px solid; background: #34304a; image-rendering: pixelated;
         object-fit: cover; object-position: 50% 20%; }
-@media (max-width: 600px) { .ag { width: 64px; } .ag img { width: 42px; height: 42px; } }
+@media (max-width: 600px) { .ag img { border-width: 2px; } .ag .n { font-size: 10px; } .ag .n i { display: none; } .ag .r { display: none; } }
 .wxpill { margin-left: 6px; font-size: 12px; color: var(--muted); }
 .seasonpill { margin-left: 10px; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--season, var(--line)); }
 header { border-bottom-color: var(--season, var(--line)) !important; }
