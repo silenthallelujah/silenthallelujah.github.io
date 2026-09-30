@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-09-30 23:34">
+<meta name="build" content="2026-09-30 23:40">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -979,6 +979,7 @@ function manilaHourF() {                     // e.g. 18.5 = 6:30 PM PHT
   return (h % 24) + m / 60;
 }
 function drawLighting(t) {                     // dawn/dusk warmth, night darkness, desk lamps for whoever is working
+  if (!QS.has("dark")) return;                 // the Boss wants the office as bright at night as by day; ?dark brings the night shade back
   const h = FORCE_DAY ? 12 : manilaHourF(), night = h < 5.5 || h >= 18.5, dusk = !night && (h < 7 || h >= 17);
   if (!night && !dusk) return;
   g.fillStyle = night ? "rgba(8,12,40,0.5)" : "rgba(255,140,60,0.13)";
