@@ -796,6 +796,50 @@ function popFromEvent(e) {                        // green check when work passe
   if (/back|asked wren|changes/.test(m)) pop(e.agent, "back");
   else if (/ok|approved|done|ready|recorded|rendered/.test(m)) pop(e.agent, "pass");
 }
+// ---------- messenger dove: carries the approval request to the Boss and brings the answer back ----------
+const DOVE_FROM = [262, 214], DOVE_PERCH = [393, 79], DOVE_MS = 3200;
+let DOVE = null;                                   // { phase: "to" | "perch" | "back", start, approved }
+let STAMP_UNTIL = 0;
+function sendDove() { DOVE = { phase: "to", start: performance.now() }; cue("handoff"); }
+function returnDove(approved) {
+  if (!DOVE) DOVE = { phase: "perch" };
+  DOVE = { phase: "back", start: performance.now(), approved };
+}
+function doveTick() {
+  const boss = S.agents.get("boss");
+  if (!DOVE && boss?.status === "waiting") DOVE = { phase: "perch" };        // page opened while a video waits
+  if (DOVE?.phase === "to" && performance.now() - DOVE.start > DOVE_MS) DOVE = { phase: "perch" };
+  if (DOVE?.phase === "back" && performance.now() - DOVE.start > DOVE_MS) {
+    if (DOVE.approved) { STAMP_UNTIL = performance.now() + 2600; pop("clerk", "pass"); } else pop("clerk", "back");
+    DOVE = null;
+  }
+  if (DOVE?.phase === "perch" && boss && boss.status !== "waiting" && !IS_DEMO) DOVE = null;   // decided elsewhere
+}
+function drawDove(t) {
+  doveTick();
+  if (!DOVE) return;
+  let x, y, flying = DOVE.phase !== "perch", note = DOVE.phase !== "back" || !DOVE.approved;
+  if (DOVE.phase === "perch") [x, y] = DOVE_PERCH;
+  else {
+    const f = Math.min(1, (performance.now() - DOVE.start) / DOVE_MS), e = f * f * (3 - 2 * f);
+    const [a, b] = DOVE.phase === "to" ? [DOVE_FROM, DOVE_PERCH] : [DOVE_PERCH, DOVE_FROM];
+    const cx = (a[0] + b[0]) / 2, cy = Math.min(a[1], b[1]) - 60;            // arc over the rooms
+    x = (1 - e) ** 2 * a[0] + 2 * (1 - e) * e * cx + e * e * b[0];
+    y = (1 - e) ** 2 * a[1] + 2 * (1 - e) * e * cy + e * e * b[1];
+  }
+  const dir = DOVE.phase === "back" ? -1 : 1, P = (dx, yy, w, h, c) => px(dir > 0 ? x + dx : x + 10 - dx - w, yy, w, h, c);
+  const flap = flying && ((t >> 7) & 1);
+  P(1, y + 3, 8, 4, "#fdfdfd"); P(7, y + 1, 4, 4, "#fdfdfd"); P(11, y + 2, 2, 1, "#f4a261"); P(9, y + 2, 1, 1, "#1b1b1b");   // body, head, beak, eye
+  P(-1, y + 4, 3, 2, "#e9ecef");                                                                                             // tail
+  if (flying) P(2, y + (flap ? -2 : 5), 6, 3, "#e9ecef"); else P(2, y + 4, 5, 2, "#dee2e6");                                  // wing
+  if (note) { P(3, y + 7, 6, 4, "#fff3b0"); P(3, y + 7, 6, 1, "#c9a227"); P(5, y + 8, 2, 2, "#c1121f"); }                    // sealed note
+}
+function drawStamp() {                             // Clara stamps the approved note
+  if (performance.now() > STAMP_UNTIL) return;
+  const x = 270, y = 222;
+  px(x, y, 14, 9, "#fff3b0"); px(x + 2, y + 2, 10, 5, "#c1121f"); px(x + 3, y + 3, 8, 3, "#fff3b0");
+  px(x + 4, y + 4, 2, 1, "#c1121f"); px(x + 6, y + 5, 1, 1, "#c1121f"); px(x + 7, y + 4, 2, 1, "#c1121f");
+}
 const CONFETTI = [];
 let CHEER_UNTIL = 0;
 function celebrate() {
@@ -930,7 +974,9 @@ function draw(t) {
     drawPop(id, p.x, p.y);
   }
   if (CAT.y >= 96) drawCat(t, catMoving);
+  drawStamp();
   drawLighting(t);
+  drawDove(t);                                     // above the night shade: the dove is always visible
   drawConfetti(dt);
   placeOverlay(t);
   requestAnimationFrame(draw);
@@ -1312,7 +1358,12 @@ function subscribe() {
     })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "events" }, p => {
       S.events.unshift(p.new); say(p.new.agent, p.new.message); renderFeed();
-      if (p.new.kind === "handoff") { walk(p.new.agent, handoffTarget(p.new)); popFromEvent(p.new); }
+      if (p.new.kind === "handoff") {
+        const to = handoffTarget(p.new);
+        if (p.new.agent === "clerk" && to === "boss") sendDove(); else walk(p.new.agent, to);   // approvals travel by dove
+        popFromEvent(p.new);
+      }
+      if (p.new.agent === "boss" && /^(approved|rejected)/i.test(p.new.message || "")) returnDove(/^approved/i.test(p.new.message));
       if (p.new.kind === "error") cue("error");
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "runs" }, p => {
@@ -1413,8 +1464,10 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
     S.events.unshift({ at: now(), agent: id, kind: "start", message: act });
     if (i > 0) {                                                            // preview the hand-off walk + pass pop
       const prevId = script[(i - 1) % script.length][0];
-      walk(prevId, id); pop(prevId, "pass");
+      if (prevId === "clerk") returnDove(true); else walk(prevId, id);
+      pop(prevId, "pass");
     }
+    if (id === "clerk") setTimeout(sendDove, 600);                          // preview the messenger dove
     if (id === "social") setTimeout(celebrate, 2500);                       // preview the go-live celebration
     say(id, act); i++; renderAll();
   };
