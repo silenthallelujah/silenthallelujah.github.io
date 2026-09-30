@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-09-30 08:22">
+<meta name="build" content="2026-09-30 11:50">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,7 +31,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 @media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
 .card { background: var(--panel); border: 2px solid var(--line); border-radius: 6px; padding: 14px; }
 .card h2 { font: 10px/1.6 var(--pixel); margin: 0 0 10px; color: var(--gold); letter-spacing: .5px; }
-#stage { position: relative; width: 100%; aspect-ratio: 480 / 288; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; background: #000; }
+#stage { position: relative; width: 100%; aspect-ratio: 480 / 417; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; background: #000; }
 #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
 #overlay { position: absolute; inset: 0; pointer-events: none; }
 .tag { position: absolute; transform: translate(-50%, 0); font: 600 clamp(8px, 1.15vw, 11px)/1 var(--body); background: rgba(10,10,18,.8);
@@ -57,14 +57,14 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 body.tvmode { overflow: hidden; }
 body.tvmode::before { content: ""; position: fixed; inset: 0; background: #000; z-index: 40; }
 body.tvmode #stage { position: fixed; z-index: 41; left: 50%; top: calc(50% - 2.2vh); transform: translate(-50%, -50%);
-  width: min(100vw, calc(92vh * 480 / 288)); border: 3px solid var(--season, var(--line)); border-radius: 0; }
+  width: min(100vw, calc(92vh * 480 / 417)); border: 3px solid var(--season, var(--line)); border-radius: 0; }
 body.tvmode #gate { display: none !important; }
 body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right: 0; bottom: 0; height: 5vh; min-height: 30px;
   align-items: center; gap: 2.5vw; padding: 0 2vw; background: #0d0c14; border-top: 2px solid var(--season, var(--line));
   font: 600 clamp(11px, 1.6vh, 20px) var(--body); color: var(--ink); white-space: nowrap; overflow: hidden; }
 #tvbar #tvclock { font-family: var(--pixel); font-size: clamp(9px, 1.4vh, 16px); color: var(--gold); }
 #tvbar #tvexit { margin-left: auto; }
-#roster { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; }   /* always one row */
+#roster { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 3px; }   /* always one row */
 .ag { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 6px 1px 5px; border-radius: 8px;
       border: 1px solid transparent; cursor: pointer; text-align: center; }
 .ag:hover, .ag.sel { background: var(--panel2); border-color: var(--line); }
@@ -213,7 +213,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
 <main>
   <section class="col">
     <div id="stage">
-      <canvas id="cv" width="480" height="288"></canvas>
+      <canvas id="cv" width="480" height="417"></canvas>
       <div id="overlay"></div>
       <div id="gate"><div class="box">
         <h3>STAFF ONLY</h3>
@@ -286,8 +286,8 @@ const SUPABASE_KEY = "sb_publishable_c6CRjz1B0cvQXV-bFJoqKg_8wkL49Nh";
 const OWNER = "silent.hallelujah.324@gmail.com";
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ---------- people & places (logical 480x288 canvas, 1 unit = 1 art pixel) ----------
-const W = 480, H = 288;
+// ---------- people & places (logical 480x417 canvas, 1 unit = 1 art pixel) ----------
+const W = 480, H = 417;
 // x, y = top-left of the seated character (head at y, desk top at y + 18)
 const CAST = {
   planner:  { x: 33,  y: 57,  skin: "#f1c27d", hair: "#6b3e26", shirt: "#4f8cff", prop: "calendar", style: "short", lanyard: true },
@@ -300,6 +300,11 @@ const CAST = {
   renderer: { x: 126, y: 210, skin: "#ffdbac", hair: "#f4d03f", shirt: "#264653", prop: "screens", style: "beanie", beanie: "#e63946" },
   clerk:    { x: 249, y: 210, skin: "#c68642", hair: "#3e2723", shirt: "#ff8fab", prop: "telegram", style: "long", headset: true },
   social:   { x: 393, y: 210, skin: "#f5d0a9", hair: "#d62828", shirt: "#ffb703", prop: "phone", style: "ponytail" },
+  // SOFTWARE: Joseph (lead, calm carpenter's cardigan, greying), Devin (dev, hoodie + headphones), Tess (tester), Dex (deployer, hi-vis)
+  lead:      { x: 60,  y: 340, skin: "#d8a47f", hair: "#7d7d7d", shirt: "#e9edc9", prop: "arch", style: "short", blazer: "#7f5539", beard: true },
+  developer: { x: 150, y: 340, skin: "#f1c27d", hair: "#3e2723", shirt: "#343a40", prop: "code", style: "short", phones: true },
+  tester:    { x: 300, y: 340, skin: "#8d5524", hair: "#1b1b1b", shirt: "#80b918", prop: "tests", style: "long", glasses: true },
+  deployer:  { x: 390, y: 340, skin: "#c68642", hair: "#111", shirt: "#1d3557", prop: "deploy", style: "beanie", beanie: "#f77f00", blazer: "#ffd60a" },
 };
 const ROOMS = [
   { name: "NEWSROOM", x: 0, y: 0, w: 297, h: 159, floor: ["#6d5a4b", "#655343"], wall: "#3d4a6b" },
@@ -307,6 +312,7 @@ const ROOMS = [
   { name: "STUDIO", x: 0, y: 162, w: 189, h: 126, floor: ["#3b3f4a", "#353945"], wall: "#2c3e50" },
   { name: "FRONT DESK", x: 192, y: 162, w: 132, h: 126, floor: ["#8a7560", "#806c58"], wall: "#46604f" },
   { name: "SOCIAL", x: 327, y: 162, w: 153, h: 126, floor: ["#5b6c8f", "#546484"], wall: "#51456b" },
+  { name: "SOFTWARE", x: 0, y: 291, w: 480, h: 126, floor: ["#4a5a52", "#43524b"], wall: "#2f3e46" },
 ];
 
 const cv = document.getElementById("cv"), g = cv.getContext("2d");
@@ -330,7 +336,7 @@ function effStatus(a) {
 }
 
 // ---------- drawing ----------
-const WINDOWS = { NEWSROOM: [15, 66], BOSS: [368, 434], STUDIO: [], "FRONT DESK": [], SOCIAL: [] };   // front desk is an inner room
+const WINDOWS = { NEWSROOM: [15, 66], BOSS: [368, 434], STUDIO: [], "FRONT DESK": [], SOCIAL: [], SOFTWARE: [] };   // front desk + software are inner rooms
 function disc(cx, cy, r, c) { for (let dy = -r; dy <= r; dy++) { const w = Math.round(Math.sqrt(r * r - dy * dy)); px(cx - w, cy + dy, 2 * w + 1, 1, c); } }
 function line(x0, y0, x1, y1, c) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1; for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, c); }
 function drawRoom(r, night, t) {
@@ -395,10 +401,11 @@ function drawWalls() {
   const wall = "#1a1a24";
   px(297, 0, 3, 159, wall); px(0, 159, W, 3, wall); px(189, 162, 3, 126, wall); px(324, 162, 3, 126, wall);
   px(297, 90, 3, 28, "#6d5a4b");                                     // newsroom <-> Boss (side wall)
+  px(0, 288, W, 3, wall);                                             // software row
   // doorways into the lower rooms: a gap in the wall line + an opening framed through the room's back wall
-  [[90, "#3b3f4a"], [240, "#8a7560"], [332, "#5b6c8f"]].forEach(([x, floor]) => {
-    px(x, 159, 26, 3, floor); px(x, 162, 26, 21, floor);
-    px(x - 2, 159, 2, 24, "#5c3d2e"); px(x + 26, 159, 2, 24, "#5c3d2e"); px(x - 2, 181, 30, 2, "rgba(0,0,0,.25)");
+  [[90, 159, "#3b3f4a"], [240, 159, "#8a7560"], [332, 159, "#5b6c8f"], [206, 288, "#4a5a52"]].forEach(([x, y, floor]) => {
+    px(x, y, 26, 3, floor); px(x, y + 3, 26, 21, floor);
+    px(x - 2, y, 2, 24, "#5c3d2e"); px(x + 26, y, 2, 24, "#5c3d2e"); px(x - 2, y + 22, 30, 2, "rgba(0,0,0,.25)");
   });
 }
 function drawPlant(x, y, big) {
@@ -482,6 +489,15 @@ function drawDecor(t) {
   // SOCIAL: platform logos, bean bag
   px(363, 162, 112, 20, "#111"); px(365, 164, 108, 16, "#0b132b"); px(416, 182, 6, 2, "#333");  // wall TV right of the door (text overlay)
   px(440, 256, 30, 20, "#e63946"); px(444, 252, 22, 8, "#f07167"); px(442, 274, 26, 3, "#9d0208");
+  // SOFTWARE: sprint board (sticky notes), build lamp (Tess), server rack (Dex), plants
+  px(20, 293, 70, 17, "#d9d9d9"); px(21, 294, 68, 15, "#f8f9fa");
+  [[23, "#fff3b0"], [31, "#ffccd5"], [45, "#caf0f8"], [53, "#fff3b0"], [67, "#d8f3dc"], [75, "#d8f3dc"]].forEach(([x, c], i) => px(x, 297 + (i % 2) * 5, 6, 4, c));
+  px(43, 294, 1, 15, "#adb5bd"); px(65, 294, 1, 15, "#adb5bd");
+  const tst = effStatus(S.agents.get("tester")), lamp = tst === "error" ? "#ff3b3b" : tst === "working" ? ((t >> 8) & 1 ? "#ffd60a" : "#b08900") : "#2dc653";
+  px(256, 295, 12, 12, "#212529"); disc(262, 301, 4, lamp);                                  // build status lamp
+  px(446, 318, 28, 64, "#212529"); px(448, 320, 24, 60, "#343a40");                          // server rack
+  for (let i = 0; i < 7; i++) { px(450, 323 + i * 8, 20, 6, "#495057"); px(452 + ((t >> (6 + (i % 3))) & 1) * 3, 325 + i * 8, 2, 2, (i + (t >> 9)) % 3 ? "#2dc653" : "#4ea8de"); }
+  drawPlant(8, 384, true); drawPlant(236, 390, false);
 }
 function drawDesk(x, y, prop, status, t) {
   const on = status === "working", flick = on && ((t >> 7) & 1);
@@ -507,6 +523,10 @@ function drawDesk(x, y, prop, status, t) {
   if (prop === "clipboard") { px(x + 20, y + 10, 7, 8, "#8b5a2b"); px(x + 21, y + 11, 5, 6, "#fff"); px(x + 22, y + 9, 3, 2, "#aaa"); }
   if (prop === "telegram") { px(x + 7, y + 12, 5, 3, "#2aabee"); px(x + 20, y + 14, 6, 4, "#f2c14e"); px(x + 22, y + 13, 2, 1, "#f2c14e"); }
   if (prop === "phone") { px(x + 21, y + 12, 5, 7, "#111"); px(x + 22, y + 13, 3, 5, on ? "#25f4ee" : "#333"); }
+  if (prop === "arch") { px(x - 4, y + 14, 7, 4, "#dbe9f6"); px(x - 3, y + 15, 2, 1, "#1d4e89"); px(x, y + 16, 2, 1, "#1d4e89"); px(x + 20, y + 12, 7, 6, "#6f4518"); px(x + 21, y + 13, 5, 1, "#c9a227"); }  // blueprint + tool box
+  if (prop === "code") { px(x + 18, y + 11, 10, 7, "#2b2b2b"); ["#90e0ef", "#f4a261", "#b5e48c"].forEach((c, i) => px(x + 19 + i, y + 12 + i * 2, 6 - i, 1, on ? c : "#555")); px(x - 4, y + 15, 4, 3, "#ffd60a"); px(x - 3, y + 14, 2, 1, "#ffd60a"); px(x - 5, y + 16, 1, 1, "#f77f00"); }  // 2nd screen + rubber duck
+  if (prop === "tests") { const bad = status === "error"; px(x + 19, y + 12, 8, 6, "#fff"); for (let i = 0; i < 2; i++) px(x + 20, y + 13 + i * 2, 2, 1, bad && i ? "#c1121f" : "#2d9d5c"); px(x + 23, y + 13, 3, 1, "#999"); px(x + 23, y + 15, 3, 1, "#999"); }  // checklist
+  if (prop === "deploy") { px(x + 19, y + 14, 8, 4, "#495057"); disc(x + 23, y + 14, 2, on && (t >> 8) & 1 ? "#ff6b6b" : "#c1121f"); }  // the big red deploy button
 }
 function drawBossDesk(x, y) {
   px(x - 22, y + 18, 62, 5, "#6b4432"); px(x - 22, y + 23, 62, 2, "#4a2f22"); px(x - 21, y + 25, 60, 12, "#4a2f22");
@@ -614,16 +634,22 @@ function handoffTarget(e) {
   if (e.agent === "checker" && m.includes("back")) return "writer";          // Scripture check failed
   if (e.agent === "editor" && m.startsWith("asked wren")) return "writer";   // editor wants changes
   if (e.agent === "clerk") return m.includes("sofia") ? "social" : m.includes("wren") ? "writer" : "boss";
+  if (e.agent === "producer" && m.includes("software team")) return "lead";     // Priya escalates a problem
+  if (e.agent === "lead") return m.includes("devin") ? "developer" : m.includes("boss") ? "boss" : null;
+  if (e.agent === "developer") return "tester";
+  if (e.agent === "tester") return m.includes("devin") ? "developer" : "lead";
   return NEXT[e.agent] || null;
 }
 // Walks go room to room through the doorways. Points are a character's top-left; one pair per door (each side).
 const ROOM_OF = { planner: "NEWSROOM", writer: "NEWSROOM", checker: "NEWSROOM", editor: "NEWSROOM", producer: "NEWSROOM",
-                  boss: "BOSS", narrator: "STUDIO", renderer: "STUDIO", clerk: "FRONT DESK", social: "SOCIAL" };
+                  boss: "BOSS", narrator: "STUDIO", renderer: "STUDIO", clerk: "FRONT DESK", social: "SOCIAL",
+                  lead: "SOFTWARE", developer: "SOFTWARE", tester: "SOFTWARE", deployer: "SOFTWARE" };
 const DOORS = [
   ["NEWSROOM", "BOSS", [276, 86], [304, 86]],
   ["NEWSROOM", "STUDIO", [94, 124], [94, 168]],
   ["NEWSROOM", "FRONT DESK", [244, 124], [244, 168]],
   ["BOSS", "SOCIAL", [336, 124], [336, 168]],
+  ["FRONT DESK", "SOFTWARE", [210, 256], [210, 300]],
 ];
 function doorRoute(from, to) {                 // waypoints between two rooms (breadth-first over the doors)
   const prev = { [from]: null }, q = [from];
@@ -792,6 +818,10 @@ function drawEmote(id, x, y, t) {                // 9x9 icon above a working age
     renderer: () => { const r = (t >> 8) & 1; px(X + 2, Y + 2, 5, 5, "#6c757d"); px(X + 3, Y + 3, 3, 3, "#fff");
                       (r ? [[4, 0], [4, 8], [0, 4], [8, 4]] : [[1, 1], [7, 1], [1, 7], [7, 7]]).forEach(([a, c]) => px(X + a, Y + c, 1, 1, "#6c757d")); },
     clerk: () => { px(X, Y + 4, 9, 2, "#2aabee"); px(X + 2, Y + 2, 6, 2, "#2aabee"); px(X + 5, Y, 3, 2, "#2aabee"); px(X + 3, Y + 6, 3, 2, "#1d7fb5"); },
+    lead: () => { disc(X + 3, Y + 3, 3, "#1d3557"); disc(X + 3, Y + 3, 2, "#dbe9f6"); for (let i = 0; i < 3; i++) px(X + 5 + i, Y + 5 + i, 2, 2, "#1d3557"); },   // magnifying glass
+    developer: () => { px(X, Y + 3, 2, 1, "#2a9d8f"); px(X + 1, Y + 2, 1, 1, "#2a9d8f"); px(X + 1, Y + 4, 1, 1, "#2a9d8f"); px(X + 7, Y + 3, 2, 1, "#2a9d8f"); px(X + 7, Y + 2, 1, 1, "#2a9d8f"); px(X + 7, Y + 4, 1, 1, "#2a9d8f"); for (let i = 0; i < 5; i++) px(X + 5 - i, Y + 1 + i * 1.5, 1, 2, "#2a9d8f"); },   // </>
+    tester: () => { px(X + 1, Y + 4, 2, 2, "#2d9d5c"); px(X + 3, Y + 6, 2, 2, "#2d9d5c"); for (let i = 0; i < 4; i++) px(X + 5 + i, Y + 5 - i, 2, 2, "#2d9d5c"); },   // check mark
+    deployer: () => { px(X + 3, Y, 3, 6, "#adb5bd"); px(X + 4, Y - 1, 1, 1, "#adb5bd"); px(X + 1, Y + 4, 2, 3, "#e63946"); px(X + 6, Y + 4, 2, 3, "#e63946"); px(X + 3, Y + 6 + ((t >> 7) & 1), 3, 2, "#ffb703"); },   // rocket
     social: () => { px(X + 1, Y + 1, 3, 3, "#e63946"); px(X + 5, Y + 1, 3, 3, "#e63946"); px(X, Y + 2, 9, 3, "#e63946"); px(X + 1, Y + 5, 7, 2, "#e63946"); px(X + 3, Y + 7, 3, 1, "#e63946"); px(X + 4, Y + 8, 1, 1, "#e63946"); },
   };
   (E[id] || (() => {}))();
@@ -1430,11 +1460,14 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   gate.style.display = "none";
   const names = { boss: ["Boss", "Owner (you)"], planner: ["Pat", "Planner"], writer: ["Wren", "Writer"], checker: ["Brother Luke", "Scripture Checker"],
     editor: ["Eddie", "Editor"], producer: ["Priya", "Producer (coordinator)"], narrator: ["Rusty", "Narrator"], renderer: ["Rex", "Renderer"],
-    clerk: ["Clara", "Approval Clerk"], social: ["Sofia", "Social Manager"] };
+    clerk: ["Clara", "Approval Clerk"], social: ["Sofia", "Social Manager"],
+    lead: ["Joseph", "Lead Engineer"], developer: ["Devin", "Developer"], tester: ["Tess", "Tester"], deployer: ["Dex", "Deployer"] };
   const script = [["planner", "working", "Reading today's Mass readings"], ["writer", "working", "Writing draft 1"],
     ["checker", "working", "Checking quotes against the Douay-Rheims"], ["editor", "working", "Reviewing draft 1"],
     ["narrator", "working", "Recording the narration"], ["renderer", "working", "Rendering the video"],
-    ["clerk", "waiting", "Waiting for the Boss to approve"], ["social", "working", "Posting the Instagram Reel"]];
+    ["clerk", "waiting", "Waiting for the Boss to approve"], ["social", "working", "Posting the Instagram Reel"],
+    ["producer", "working", "Escalated to the software team: Demo run failed (#99)"], ["lead", "working", "Investigating #99"],
+    ["developer", "working", "Building #99"], ["tester", "working", "Testing #99"], ["deployer", "working", "Deploying #99"]];
   const now = () => new Date().toISOString();
   Object.entries(names).forEach(([id, [name, role]]) => S.agents.set(id, { id, name, role, status: "idle", activity: "Demo", updated_at: now() }));
   S.runs = [{ day: manilaDay(), title: "Demo: Singing Praise Before the Angels", format: "psalm", stage: "planning", links: {} }];
