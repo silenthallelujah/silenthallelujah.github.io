@@ -73,6 +73,12 @@ body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right
 .ag .n i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
 .ag .r { font-size: 10.5px; line-height: 1.2; color: var(--muted); margin-top: 1px; }
 .dwrap { display: flex; gap: 12px; align-items: center; }
+.av { width: 20px; height: 20px; border-radius: 50%; image-rendering: pixelated; object-fit: cover; object-position: 50% 20%;
+      background: #34304a; vertical-align: middle; margin-right: 5px; }
+.av.big { width: 36px; height: 36px; flex: none; margin-right: 0; border: 2px solid var(--wait); }
+.av.sm { width: 14px; height: 14px; margin-right: 3px; vertical-align: -3px; }
+.appr { display: flex; gap: 9px; align-items: center; }
+.claude-mark { color: #d97757; margin-right: 3px; font-weight: 700; }
 .bigp { width: 72px; height: 72px; flex: none; border-radius: 50%; border: 3px solid; background: #34304a; image-rendering: pixelated;
         object-fit: cover; object-position: 50% 20%; }
 @media (max-width: 600px) { .ag { width: 64px; } .ag img { width: 42px; height: 42px; } }
@@ -1083,7 +1089,8 @@ function renderBoard() {
   const tasks = S.tasks.filter(t => BOARD.owner === "all" || t.owner === BOARD.owner);
   const card = t => `<div class="kcard s-${esc(t.status)}">
       <div class="top"><span class="num">#${t.num}</span><span class="badge">${esc(t.area)}</span>
-        <span class="badge ${t.owner === "You" ? "who-you" : "who-claude"}">${t.owner === "You" ? "You" : "Claude"}</span></div>
+        <span class="badge ${t.owner === "You" ? "who-you" : "who-claude"}">${t.owner === "You"
+          ? `<img class="av sm" src="${portrait("boss")}" alt="">You` : `<span class="claude-mark">✳</span>Claude`}</span></div>
       <div class="ti">${esc(t.title)}</div>
       <div class="de">${esc(t.detail)}</div>
       <div class="ft">${t.status === "done" ? `Done ${esc(t.done_on || "")}` : t.updated_at ? `Updated ${ago(t.updated_at)}` : ""}</div></div>`;
@@ -1164,7 +1171,7 @@ function renderFeed() {
   document.getElementById("feed").innerHTML = S.events.slice(0, 40).map(e => {
     const a = S.agents.get(e.agent);
     return `<div><time>${new Date(e.at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</time>
-      <b>${esc(a?.name || e.agent)}</b>: ${esc(e.message)}</div>`;
+      ${CAST[e.agent] ? `<img class="av" src="${portrait(e.agent)}" alt="">` : ""}<b>${esc(a?.name || e.agent)}</b>: ${esc(e.message)}</div>`;
   }).join("") || `<p class="muted">No activity yet.</p>`;
 }
 const PORTRAITS = {};
@@ -1238,8 +1245,9 @@ function renderApprovals() {
     const left = live - LEAD_MS - now, evening = r.day.endsWith("-pm");
     const cls = left <= 0 ? "red" : left < 3600000 ? "red" : left < 3 * 3600000 ? "amber" : "";
     const cd = left > 0 ? `APPROVE WITHIN ${span(left).toUpperCase()}` : "LATE - POSTS AS SOON AS YOU APPROVE";
-    return `<div class="appr ${cls}"><div class="cd">${cd}</div>${evening ? "🌙 Evening" : "☀️ Morning"}: <b>${esc(r.title || "untitled")}</b>
-      <div class="muted">Approve by ${phtWhen(live - LEAD_MS)} · goes live ${phtWhen(live)}</div></div>`;
+    return `<div class="appr ${cls}"><img class="av big" src="${portrait("clerk")}" alt="" title="Clara is waiting for your approval">
+      <div><div class="cd">${cd}</div>${evening ? "🌙 Evening" : "☀️ Morning"}: <b>${esc(r.title || "untitled")}</b>
+      <div class="muted">Approve by ${phtWhen(live - LEAD_MS)} · goes live ${phtWhen(live)}</div></div></div>`;
   }).join("");
   S.approvalAlert = pending.find(p => p.live - LEAD_MS - now < 3600000) || null;
   return pending.length;
