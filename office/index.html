@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-09-30 23:40">
+<meta name="build" content="2026-09-30 23:50">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1064,6 +1064,7 @@ function renderScreens() {
   if (wbEl.innerHTML !== wb) wbEl.innerHTML = wb;
 }
 const ROLE_SHORT = { boss: "Owner (you)", producer: "Producer" };   // shorter role text for the tags + roster
+const TAG_DX = { checker: 12 };   // art px: Luke's two-line tag would sit on Priya's head (she is just below-left of him)
 const tags = {}, bubbleEls = {};
 for (const id of Object.keys(CAST)) {
   const tg = document.createElement("div"); tg.className = "tag"; tg.onclick = () => select(id); overlay.append(tg); tags[id] = tg;
@@ -1080,7 +1081,7 @@ function placeOverlay(t) {
     const role = overlay.clientWidth < 560 ? "" : (ROLE_SHORT[id] || a?.role || "");   // phones: name only (no room)
     const html = `<i style="background:${STATUS_COLOR[st]}"></i>${esc(label)}${role ? `<span class="rl">${esc(role)}</span>` : ""}`;
     if (tg.innerHTML !== html) tg.innerHTML = html;
-    tg.style.left = pct(p.x + 9, W); tg.style.top = pct(p.y + (id === "boss" ? 39 : 41), H);
+    tg.style.left = pct(p.x + 9 + (role ? TAG_DX[id] || 0 : 0), W); tg.style.top = pct(p.y + (id === "boss" ? 39 : 41), H);
     tg.classList.toggle("sel", S.selected === id);
     const b = bubbleEls[id], msg = S.bubbles.get(id);
     if (msg && shown.has(id)) {
