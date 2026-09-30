@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-09-30 19:13">
+<meta name="build" content="2026-09-30 19:14">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -142,6 +142,7 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .pf { font: 600 11px var(--body); padding: 2px 7px; border-radius: 99px; background: var(--panel2); color: var(--muted);
       text-decoration: none; margin: 0 !important; border: 1px solid var(--line); }
 .pf-posted { background: #173826; color: #8ff0b4; border-color: #2a6b45; } .pf-scheduled { background: #16283d; color: #9cc9f5; border-color: #2c4f75; }
+.pf-draft { background: #16283d; color: #9cc9f5; border-color: #2c4f75; }
 .pf-pending, .pf-retrying { background: #3a2f12; color: #ffd98a; border-color: #6b5520; }
 .pf-private, .pf-failed { background: #3a1518; color: #ffb3b3; border-color: #7a2a30; }
 .meter { height: 10px; background: var(--panel2); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
@@ -1045,7 +1046,7 @@ overlay.append(tvEl, wbEl);
   d.style.left = pct(x, W); d.style.top = pct(y, H); overlay.append(d);
 });
 const TV_ORDER = [["youtube", "YT"], ["facebook", "FB"], ["instagram", "IG"], ["tiktok", "TT"]];
-const TV_COLOR = { posted: "#52d88a", scheduled: "#4f9cff", pending: "#f2c14e", retrying: "#f2c14e", private: "#ff5c5c", failed: "#ff5c5c", off: "#555" };
+const TV_COLOR = { posted: "#52d88a", scheduled: "#4f9cff", draft: "#7fa8d8", pending: "#f2c14e", retrying: "#f2c14e", private: "#ff5c5c", failed: "#ff5c5c", off: "#555" };
 function renderScreens() {
   const runs = S.runs.filter(r => !/^test-/.test(r.day));
   const r = runs.find(x => Object.keys(x.platforms || {}).length) || runs[0];
@@ -1155,7 +1156,7 @@ document.querySelectorAll("[data-own]").forEach(b => b.onclick = () => {
   renderBoard();
 });
 const ICON = { youtube: "YouTube", facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok" };
-const PF_LABEL = { posted: "live", scheduled: "scheduled", pending: "pending", retrying: "retrying", private: "PRIVATE - set Public",
+const PF_LABEL = { posted: "live", scheduled: "scheduled", draft: "draft in inbox", pending: "pending", retrying: "retrying", private: "PRIVATE - set Public",
                    failed: "failed", off: "not set up" };
 const safeUrl = u => /^https:\/\//.test(u || "") ? u : "";
 function studioUrl(u) { const m = /shorts\/([\w-]+)/.exec(u || ""); return m ? `https://studio.youtube.com/video/${m[1]}/edit` : ""; }
