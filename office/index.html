@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="build" content="2026-09-30 00:16">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -83,6 +84,10 @@ body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right
         object-fit: cover; object-position: 50% 20%; }
 @media (max-width: 600px) { .ag img { border-width: 2px; } .ag .n { font-size: 10px; } .ag .n i { display: none; } .ag .r { display: none; } }
 .wxpill { margin-left: 6px; font-size: 12px; color: var(--muted); }
+#buildinfo { max-width: 1180px; margin: 0 auto; padding: 4px 16px 18px; color: var(--muted); font-size: 11.5px; text-align: right; }
+#updbar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60; background: var(--gold); color: #1b1a24;
+          font: 600 14px var(--body); padding: 10px 14px; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+#updbar button { margin-left: 10px; background: #1b1a24; color: var(--gold); padding: 6px 12px; }
 .seasonpill { margin-left: 10px; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--season, var(--line)); }
 header { border-bottom-color: var(--season, var(--line)) !important; }
 #stage { border-color: var(--season, var(--line)) !important; }
@@ -270,6 +275,8 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
     <div class="cols" id="cols"></div>
   </section>
 </main>
+<footer id="buildinfo"></footer>
+<div id="updbar" class="hide">A new version of the office is available. <button id="updnow">Update now</button></div>
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -323,7 +330,7 @@ function effStatus(a) {
 }
 
 // ---------- drawing ----------
-const WINDOWS = { NEWSROOM: [15, 66], BOSS: [368, 434], STUDIO: [], "FRONT DESK": [202], SOCIAL: [] };
+const WINDOWS = { NEWSROOM: [15, 66], BOSS: [368, 434], STUDIO: [], "FRONT DESK": [], SOCIAL: [] };   // front desk is an inner room
 function disc(cx, cy, r, c) { for (let dy = -r; dy <= r; dy++) { const w = Math.round(Math.sqrt(r * r - dy * dy)); px(cx - w, cy + dy, 2 * w + 1, 1, c); } }
 function line(x0, y0, x1, y1, c) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1; for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, c); }
 function drawRoom(r, night, t) {
@@ -1497,6 +1504,27 @@ setInterval(() => { renderToday(); renderRoster(); }, 60000);          // stalen
 setInterval(() => { renderApprovals(); renderHealth(); }, 30000);      // countdowns + "mini PC alive" ageing
 requestAnimationFrame(draw);
 fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);                  // real Manila weather in the windows
+
+// version stamp + "new version available" check (browsers may keep an old copy for a while)
+const BUILD = document.querySelector('meta[name="build"]')?.content || "dev";
+document.getElementById("buildinfo").textContent = `Office version ${BUILD === "dev" ? "(local preview)" : BUILD + " PHT"}`;
+document.getElementById("updnow").onclick = () => location.reload();
+async function checkUpdate() {
+  if (BUILD === "dev") return;
+  try {
+    const html = await (await fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" })).text();
+    const live = /<meta name="build" content="([^"]+)"/.exec(html)?.[1];
+    if (live && live !== BUILD) {
+      if (document.body.classList.contains("tvmode")) {                              // TV mode: just refresh, stay in TV mode
+        try { sessionStorage.setItem("office-tv", "1"); } catch {}
+        location.reload();
+      }
+      else document.getElementById("updbar").classList.remove("hide");
+    }
+  } catch { /* offline */ }
+}
+setInterval(checkUpdate, 5 * 60 * 1000); setTimeout(checkUpdate, 15000);
+try { if (sessionStorage.getItem("office-tv")) { sessionStorage.removeItem("office-tv"); document.body.classList.add("tvmode"); renderTvBar(); } } catch {}
 </script>
 </body>
 </html>
