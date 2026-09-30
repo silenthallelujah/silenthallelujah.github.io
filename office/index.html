@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-09-30 08:17">
+<meta name="build" content="2026-09-30 08:22">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -394,8 +394,12 @@ function drawSky(x, y, night, t) {                // 24x12 window pane
 function drawWalls() {
   const wall = "#1a1a24";
   px(297, 0, 3, 159, wall); px(0, 159, W, 3, wall); px(189, 162, 3, 126, wall); px(324, 162, 3, 126, wall);
-  px(297, 90, 3, 28, "#6d5a4b");                                     // doorways
-  px(90, 159, 26, 3, "#6d5a4b"); px(240, 159, 26, 3, "#8a7560"); px(393, 159, 26, 3, "#5b6c8f");
+  px(297, 90, 3, 28, "#6d5a4b");                                     // newsroom <-> Boss (side wall)
+  // doorways into the lower rooms: a gap in the wall line + an opening framed through the room's back wall
+  [[90, "#3b3f4a"], [240, "#8a7560"], [332, "#5b6c8f"]].forEach(([x, floor]) => {
+    px(x, 159, 26, 3, floor); px(x, 162, 26, 21, floor);
+    px(x - 2, 159, 2, 24, "#5c3d2e"); px(x + 26, 159, 2, 24, "#5c3d2e"); px(x - 2, 181, 30, 2, "rgba(0,0,0,.25)");
+  });
 }
 function drawPlant(x, y, big) {
   const h = big ? 14 : 9;
@@ -468,15 +472,15 @@ function drawDecor(t) {
   // STUDIO: acoustic foam, ON AIR, plant
   for (let i = 0; i < 9; i++) for (let j = 0; j < 2; j++) px(6 + i * 9, 165 + j * 8, 8, 7, (i + j) & 1 ? "#39424e" : "#2e3540");
   const onAir = S.agents.get("narrator")?.status === "working";
-  px(92, 164, 34, 12, "#111"); px(94, 166, 30, 8, onAir && (t >> 9) & 1 ? "#ff3b3b" : "#5a1a1a");
-  px(98, 168, 3, 4, "#ffd6d6"); px(103, 168, 3, 4, "#ffd6d6"); px(110, 168, 3, 4, "#ffd6d6"); px(115, 168, 5, 4, "#ffd6d6");
+  px(140, 164, 34, 12, "#111"); px(142, 166, 30, 8, onAir && (t >> 9) & 1 ? "#ff3b3b" : "#5a1a1a");   // ON AIR, beside the door
+  px(146, 168, 3, 4, "#ffd6d6"); px(151, 168, 3, 4, "#ffd6d6"); px(158, 168, 3, 4, "#ffd6d6"); px(163, 168, 5, 4, "#ffd6d6");
   drawPlant(166, 250, true);
   // FRONT DESK: clock (PHT), bulletin board, plant
   drawClock(305, 172);
-  px(234, 165, 36, 15, "#a47148"); px(236, 167, 8, 6, "#fff3b0"); px(246, 168, 9, 5, "#caf0f8"); px(257, 166, 10, 7, "#ffccd5");
+  px(198, 165, 36, 15, "#a47148"); px(200, 167, 8, 6, "#fff3b0"); px(210, 168, 9, 5, "#caf0f8"); px(221, 166, 10, 7, "#ffccd5"); // bulletin, beside the door
   drawPlant(302, 258, false);
   // SOCIAL: platform logos, bean bag
-  px(333, 162, 140, 20, "#111"); px(335, 164, 136, 16, "#0b132b"); px(400, 182, 6, 2, "#333");  // wall TV (text overlay)
+  px(363, 162, 112, 20, "#111"); px(365, 164, 108, 16, "#0b132b"); px(416, 182, 6, 2, "#333");  // wall TV right of the door (text overlay)
   px(440, 256, 30, 20, "#e63946"); px(444, 252, 22, 8, "#f07167"); px(442, 274, 26, 3, "#9d0208");
 }
 function drawDesk(x, y, prop, status, t) {
@@ -619,7 +623,7 @@ const DOORS = [
   ["NEWSROOM", "BOSS", [276, 86], [304, 86]],
   ["NEWSROOM", "STUDIO", [94, 124], [94, 168]],
   ["NEWSROOM", "FRONT DESK", [244, 124], [244, 168]],
-  ["BOSS", "SOCIAL", [397, 124], [397, 168]],
+  ["BOSS", "SOCIAL", [336, 124], [336, 168]],
 ];
 function doorRoute(from, to) {                 // waypoints between two rooms (breadth-first over the doors)
   const prev = { [from]: null }, q = [from];
@@ -1001,7 +1005,7 @@ ROOMS.forEach(r => { const d = document.createElement("div"); d.className = "roo
 // wall screens: HTML laid over the canvas so the text stays sharp
 const tvEl = document.createElement("div"), wbEl = document.createElement("div");
 tvEl.className = "tv"; wbEl.className = "wb";
-Object.assign(tvEl.style, { left: pct(336, W), top: pct(165, H), width: pct(134, W), height: pct(14, H) });
+Object.assign(tvEl.style, { left: pct(366, W), top: pct(165, H), width: pct(106, W), height: pct(14, H) });
 Object.assign(wbEl.style, { left: pct(226, W), top: pct(3, H), width: pct(62, W), height: pct(15, H) });
 overlay.append(tvEl, wbEl);
 [["Our Lady", 332, 13], ["☕ Coffee", 259, 24], ["💧 Water", 287, 20]].forEach(([text, x, y]) => {   // object labels
