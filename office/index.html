@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-01 18:00">
+<meta name="build" content="2026-10-01 18:41">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,12 +27,11 @@ header .grow { flex: 1; }
 #clock { font: 10px var(--pixel); color: var(--muted); text-align: right; }
 #live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--off); margin-right: 6px; vertical-align: middle; }
 #live.on { background: var(--work); box-shadow: 0 0 8px var(--work); }
-main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) 340px; }
+main { max-width: 1480px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) 340px; }
 @media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
 .card { background: var(--panel); border: 2px solid var(--line); border-radius: 6px; padding: 14px; }
 .card h2 { font: 10px/1.6 var(--pixel); margin: 0 0 10px; color: var(--gold); letter-spacing: .5px; }
-#stagewrap { padding: 16px 16px 0; }
-#stage { position: relative; width: min(100%, calc((100vh - 110px) * 690 / 417)); margin: 0 auto; aspect-ratio: 690 / 417; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; background: #000; }
+#stage { position: relative; width: 100%; aspect-ratio: 640 / 417; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; background: #000; }
 #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
 #overlay { position: absolute; inset: 0; pointer-events: none; }
 .tag { position: absolute; transform: translate(-50%, 0); font: 600 clamp(8px, 1.15vw, 11px)/1 var(--body); background: rgba(10,10,18,.8);
@@ -58,7 +57,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 body.tvmode { overflow: hidden; }
 body.tvmode::before { content: ""; position: fixed; inset: 0; background: #000; z-index: 40; }
 body.tvmode #stage { position: fixed; z-index: 41; left: 50%; top: calc(50% - 2.2vh); transform: translate(-50%, -50%);
-  width: min(100vw, calc(92vh * 690 / 417)); border: 3px solid var(--season, var(--line)); border-radius: 0; }
+  width: min(100vw, calc(92vh * 640 / 417)); border: 3px solid var(--season, var(--line)); border-radius: 0; }
 body.tvmode #gate { display: none !important; }
 body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right: 0; bottom: 0; height: 5vh; min-height: 30px;
   align-items: center; gap: 2.5vw; padding: 0 2vw; background: #0d0c14; border-top: 2px solid var(--season, var(--line));
@@ -214,9 +213,10 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
 <div id="alerts" class="hide"></div>
 <div id="tvbar"><span id="tvclock"></span><span id="tvstatus"></span><span id="tvtoday"></span><span id="tvnext"></span><span id="tvpc"></span>
   <button id="tvexit" class="ghost" title="Exit TV mode (Esc)">✕</button></div>
-<div id="stagewrap">
+<main>
+  <section class="col">
     <div id="stage">
-      <canvas id="cv" width="690" height="417"></canvas>
+      <canvas id="cv" width="640" height="417"></canvas>
       <div id="overlay"></div>
       <div id="gate"><div class="box">
         <h3>STAFF ONLY</h3>
@@ -226,9 +226,6 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
         <p id="loginmsg" class="muted"></p>
       </div></div>
     </div>
-</div>
-<main>
-  <section class="col">
     <div class="card">
       <h2>WHO'S DOING WHAT</h2>
       <div id="roster"></div>
@@ -292,8 +289,8 @@ const SUPABASE_KEY = "sb_publishable_c6CRjz1B0cvQXV-bFJoqKg_8wkL49Nh";
 const OWNER = "silent.hallelujah.324@gmail.com";
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ---------- people & places (logical 690x417 canvas, 1 unit = 1 art pixel) ----------
-const W = 690, H = 417;
+// ---------- people & places (logical 640x417 canvas, 1 unit = 1 art pixel) ----------
+const W = 640, H = 417;
 // x, y = top-left of the seated character (head at y, desk top at y + 18)
 const CAST = {
   planner:  { x: 33,  y: 57,  skin: "#f1c27d", hair: "#6b3e26", shirt: "#4f8cff", prop: "calendar", style: "short", lanyard: true },
@@ -318,9 +315,9 @@ const ROOMS = [
   { name: "BOSS", x: 300, y: 0, w: 180, h: 159, floor: ["#7a2e3a", "#702a35"], wall: "#4a3b5c" },
   { name: "STUDIO", x: 0, y: 162, w: 189, h: 126, floor: ["#3b3f4a", "#353945"], wall: "#2c3e50" },
   { name: "FRONT DESK", x: 192, y: 162, w: 132, h: 126, floor: ["#8a7560", "#806c58"], wall: "#46604f" },
-  { name: "SOCIAL", x: 327, y: 162, w: 363, h: 126, floor: ["#5b6c8f", "#546484"], wall: "#51456b" },
-  { name: "MEETING", x: 483, y: 0, w: 207, h: 159, floor: ["#7b6244", "#725a3e"], wall: "#3d2f4f" },
-  { name: "SOFTWARE", x: 0, y: 291, w: 690, h: 126, floor: ["#4a5a52", "#43524b"], wall: "#2f3e46" },
+  { name: "SOCIAL", x: 327, y: 162, w: 153, h: 126, floor: ["#5b6c8f", "#546484"], wall: "#51456b" },
+  { name: "MEETING", x: 483, y: 0, w: 157, h: 417, floor: ["#7b6244", "#725a3e"], wall: "#3d2f4f" },
+  { name: "SOFTWARE", x: 0, y: 291, w: 480, h: 126, floor: ["#4a5a52", "#43524b"], wall: "#2f3e46" },
 ];
 
 const cv = document.getElementById("cv"), g = cv.getContext("2d");
@@ -344,7 +341,7 @@ function effStatus(a) {
 }
 
 // ---------- drawing ----------
-const WINDOWS = { NEWSROOM: [15, 66], BOSS: [368, 434], STUDIO: [], "FRONT DESK": [], SOCIAL: [], SOFTWARE: [], MEETING: [495, 662] };   // front desk + software are inner rooms
+const WINDOWS = { NEWSROOM: [15, 66], BOSS: [368, 434], STUDIO: [], "FRONT DESK": [], SOCIAL: [], SOFTWARE: [], MEETING: [487, 612] };   // front desk + software are inner rooms
 function disc(cx, cy, r, c) { for (let dy = -r; dy <= r; dy++) { const w = Math.round(Math.sqrt(r * r - dy * dy)); px(cx - w, cy + dy, 2 * w + 1, 1, c); } }
 function line(x0, y0, x1, y1, c) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1; for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, c); }
 function drawRoom(r, night, t) {
@@ -407,10 +404,11 @@ function drawSky(x, y, night, t) {                // 24x12 window pane
 }
 function drawWalls() {
   const wall = "#1a1a24";
-  px(297, 0, 3, 159, wall); px(0, 159, W, 3, wall); px(189, 162, 3, 126, wall); px(324, 162, 3, 126, wall);
+  px(297, 0, 3, 159, wall); px(0, 159, 480, 3, wall); px(189, 162, 3, 126, wall); px(324, 162, 3, 126, wall);
   px(297, 90, 3, 28, "#6d5a4b");                                     // newsroom <-> Boss (side wall)
-  px(480, 0, 3, 159, wall); px(480, 125, 3, 32, "#702a35"); px(480, 123, 3, 2, "#5c3d2e"); px(480, 157, 3, 2, "#5c3d2e");   // Boss <-> meeting room (doorway at the bottom)
-  px(0, 288, W, 3, wall);                                             // software row
+  px(480, 0, 3, 417, wall);                                           // the tall meeting room's west wall, with three doorways
+  [[125, "#702a35"], [193, "#5b6c8f"], [383, "#4a5a52"]].forEach(([y, floor]) => { px(480, y, 3, 32, floor); px(480, y - 2, 3, 2, "#5c3d2e"); px(480, y + 32, 3, 2, "#5c3d2e"); });   // Boss / Social / Software
+  px(0, 288, 480, 3, wall);                                             // software row
   // doorways into the lower rooms: a gap in the wall line + an opening framed through the room's back wall
   [[90, 159, "#3b3f4a"], [240, 159, "#8a7560"], [332, 159, "#5b6c8f"], [206, 288, "#4a5a52"]].forEach(([x, y, floor]) => {
     px(x, y, 26, 3, floor); px(x, y + 3, 26, 21, floor);
@@ -507,25 +505,20 @@ function drawDecor(t) {
   px(446, 318, 28, 64, "#212529"); px(448, 320, 24, 60, "#343a40");                          // server rack
   for (let i = 0; i < 7; i++) { px(450, 323 + i * 8, 20, 6, "#495057"); px(452 + ((t >> (6 + (i % 3))) & 1) * 3, 325 + i * 8, 2, 2, (i + (t >> 9)) % 3 ? "#2dc653" : "#4ea8de"); }
   drawPlant(8, 384, true); drawPlant(236, 390, false);
-  // wider Social + Software rooms: lounges, wall art
-  px(520, 258, 84, 22, "#6b5b95"); px(520, 248, 84, 11, "#8a79b8"); px(516, 252, 6, 28, "#5c4d80"); px(602, 252, 6, 28, "#5c4d80"); px(540, 284, 44, 8, "#9d8f77");
-  drawPlant(640, 250, true);
-  [[500, "#f2c14e", "#2a3a5f"], [528, "#e76f51", "#264653"], [556, "#8ecae6", "#1d3557"]].forEach(([x, a, b]) => { px(x, 166, 16, 14, a); px(x + 2, 168, 12, 10, b); });
-  px(520, 356, 84, 22, "#4a6fa5"); px(520, 346, 84, 11, "#6d8fc7"); px(516, 350, 6, 28, "#3a5a8a"); px(602, 350, 6, 28, "#3a5a8a"); px(540, 382, 44, 8, "#9d8f77");
-  drawPlant(640, 350, true); drawPlant(500, 392, false);
-  // MEETING ROOM: whiteboard on the wall, a long table with chairs all round, the Boss's chair at the east end
-  px(545, 2, 84, 17, "#bfbfbf"); px(546, 3, 82, 15, "#f7f7f7");
+  // MEETING ROOM (tall, along the right edge): whiteboard behind the Boss's head table at the top, rows of seats facing him
+  px(520, 2, 84, 17, "#bfbfbf"); px(521, 3, 82, 15, "#f7f7f7");
   const bl = ML.board;                                                                     // lines appear as the discussion goes on
-  for (let k = 0; k < Math.min(bl, 4); k++) px(549, 5 + k * 3, [58, 40, 66, 34][k], 1, k % 2 ? "#1d4e89" : "#c1121f");
+  for (let k = 0; k < Math.min(bl, 4); k++) px(524, 5 + k * 3, [58, 40, 66, 34][k], 1, k % 2 ? "#1d4e89" : "#c1121f");
   SEATS.forEach(sx => {
-    if (sx.back) { px(sx.x, sx.y + 8, 19, 24, "#3a3144"); px(sx.x + 1, sx.y + 8, 17, 2, "#51465f"); }          // chair seen from behind
-    else { px(sx.x + 1, sx.y + 8, 17, 22, "#3a3144"); px(sx.x + 1, sx.y + 8, 17, 2, "#51465f"); }
+    px(sx.x - 5, sx.y - 9, 29, 8, "#9a6a3a"); px(sx.x - 5, sx.y - 9, 29, 1, "#b88650"); px(sx.x - 5, sx.y - 2, 29, 1, "#6b4423");   // desk in front of the seat
+    px(sx.x + 4, sx.y - 8, 10, 5, "#f8f1de"); px(sx.x + 6, sx.y - 6, 6, 1, "#9aa");                                               // paper
+    px(sx.x, sx.y + 8, 19, 24, "#3a3144"); px(sx.x + 1, sx.y + 8, 17, 2, "#51465f");                                              // chair seen from behind
   });
-  px(652, 52, 30, 42, "#5a1f2b"); px(652, 52, 30, 3, "#7a2e3a"); px(650, 70, 4, 22, "#4a1822"); px(680, 70, 4, 22, "#4a1822");   // the Boss's chair
-  px(494, 78, 158, 24, "#9a6a3a"); px(494, 78, 158, 2, "#b88650"); px(494, 100, 158, 5, "#6b4423"); px(496, 105, 4, 10, "#4a2e12"); px(646, 105, 4, 10, "#4a2e12");   // the table
-  SEATS.forEach(sx => { px(sx.x + 4, sx.back ? 92 : 82, 10, 6, "#f8f1de"); px(sx.x + 6, sx.back ? 94 : 84, 6, 1, "#9aa"); });   // papers at every seat
-  px(567, 86, 6, 8, "#a8dadc"); px(566, 82, 3, 5, "#ff8fab"); px(570, 81, 3, 6, "#ffd60a");                                    // flowers in the middle
-  drawPlant(668, 132, true);
+  px(534, 34, 32, 30, "#5a1f2b"); px(534, 34, 32, 3, "#7a2e3a"); px(532, 46, 3, 18, "#4a1822"); px(565, 46, 3, 18, "#4a1822");    // the Boss's chair
+  px(505, 62, 90, 18, "#9a6a3a"); px(505, 62, 90, 2, "#b88650"); px(505, 77, 90, 4, "#6b4423");                                     // head table
+  px(512, 66, 10, 6, "#f8f1de"); px(578, 66, 10, 6, "#f8f1de"); px(541, 66, 18, 5, "#c9a227");                                      // papers + nameplate
+  px(556, 300, 6, 8, "#a8dadc"); px(555, 296, 3, 5, "#ff8fab"); px(559, 295, 3, 6, "#ffd60a");                                        // flowers
+  drawPlant(612, 384, true);
 }
 function drawDesk(x, y, prop, status, t) {
   const on = status === "working", flick = on && ((t >> 7) & 1);
@@ -706,6 +699,8 @@ const DOORS = [
   ["NEWSROOM", "FRONT DESK", [244, 124], [244, 168]],
   ["BOSS", "SOCIAL", [336, 124], [336, 168]],
   ["BOSS", "MEETING", [456, 126], [490, 126]],
+  ["SOCIAL", "MEETING", [452, 194], [490, 194]],
+  ["SOFTWARE", "MEETING", [452, 384], [490, 384]],
   ["FRONT DESK", "SOFTWARE", [210, 256], [210, 300]],
 ];
 function doorRoute(from, to) {                 // waypoints between two rooms (breadth-first over the doors)
@@ -1023,12 +1018,10 @@ function walkPos(id, t) {
 // sit round the long table, the Boss walks in and takes the head seat and leads: someone speaks (their real comment shows as a
 // speech bubble), the others nod, take notes, think, raise a hand or ask "?"; the Boss asks and points; the whiteboard fills up.
 const MEET = new Map();                          // id -> { path, cum, start, leaveAt, seat, lift, arrived }
-const BOSS_SEAT = { x: 657, y: 56, back: false, wp: [646, 120] };
+const BOSS_SEAT = { x: 541, y: 38, back: false };          // head of the room, behind his table, facing us
+const AISLE_X = 549;                                       // walkers use the aisle between the two columns
 const SEATS = [];
-[566, 544, 588, 522, 610, 500, 632].forEach(x => {   // centre first: north side faces us, south side has its back to us (facing the Boss)
-  SEATS.push({ x, y: 52, back: false, wp: [489, 52] });
-  SEATS.push({ x, y: 106, back: true, wp: null, below: true });
-});
+for (let r = 0; r < 7; r++) { const y = 100 + r * 40; SEATS.push({ x: 513, y, back: true }); SEATS.push({ x: 586, y, back: true }); }   // facing the Boss (seen from behind)
 const ML = { speaker: null, from: 0, until: 0, ask: null, act: new Map(), bossAct: null, board: 0 };
 const meetingOn = () => [...MEET.values()].some(m => m.leaveAt == null);
 function syncMeeting() {
@@ -1042,9 +1035,11 @@ function syncMeeting() {
     if (m && m.leaveAt == null) return;
     WALKS.delete(id);
     const seat = id === "boss" ? BOSS_SEAT : SEATS[i - 1], c = CAST[id];
-    const path = [[c.x, c.y], ...doorRoute(ROOM_OF[id], "MEETING"), ...(seat.wp ? [seat.wp] : []), [seat.x, seat.y]], cum = [0];
+    const door = doorRoute(ROOM_OF[id], "MEETING"), ey = door.length ? door[door.length - 1][1] : seat.y;
+    const via = id === "boss" ? [[490, 62], [490, 40]] : [[AISLE_X, ey], [AISLE_X, seat.y]];   // the Boss walks round the head table; the team down the aisle
+    const path = [[c.x, c.y], ...door, ...via, [seat.x, seat.y]], cum = [0];
     for (let k = 1; k < path.length; k++) cum.push(cum[k - 1] + Math.hypot(path[k][0] - path[k - 1][0], path[k][1] - path[k - 1][1]));
-    MEET.set(id, { path, cum, start: now + i * 250, leaveAt: null, seat, lift: id === "boss" ? 14 : (Math.round((seat.x - 500) / 22) % 2) * 14, arrived: false });   // staggered
+    MEET.set(id, { path, cum, start: now + i * 250, leaveAt: null, seat, lift: 0, arrived: false });   // staggered
   });
   for (const [id, m] of MEET) if (m.leaveAt == null && !ids.includes(id)) m.leaveAt = now;
   if (!live) { ML.speaker = null; ML.ask = null; ML.act.clear(); ML.bossAct = null; ML.board = 0; }
