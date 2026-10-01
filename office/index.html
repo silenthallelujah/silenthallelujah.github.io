@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-09-30 23:50">
+<meta name="build" content="2026-10-01 09:46">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -66,7 +66,7 @@ body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right
 #tvbar #tvexit { margin-left: auto; }
 #roster .team { font: 10px var(--pixel); letter-spacing: .5px; color: var(--muted); margin: 6px 0 3px 2px; }
 #roster .team:first-child { margin-top: 0; }
-#roster .row { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; }   /* one row per team, same portrait size */
+#roster .row { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 3px; }   /* one row per team, same portrait size (Video team = 11 with Gabriel) */
 .ag { display: flex; flex-direction: column; align-items: center; min-width: 0; padding: 6px 1px 5px; border-radius: 8px;
       border: 1px solid transparent; cursor: pointer; text-align: center; }
 .ag:hover, .ag.sel { background: var(--panel2); border-color: var(--line); }
@@ -303,6 +303,7 @@ const CAST = {
   renderer: { x: 126, y: 210, skin: "#ffdbac", hair: "#f4d03f", shirt: "#264653", prop: "screens", style: "beanie", beanie: "#e63946" },
   clerk:    { x: 249, y: 210, skin: "#c68642", hair: "#3e2723", shirt: "#ff8fab", prop: "telegram", style: "long", headset: true },
   social:   { x: 393, y: 210, skin: "#f5d0a9", hair: "#d62828", shirt: "#ffb703", prop: "phone", style: "ponytail" },
+  strategist: { x: 340, y: 228, skin: "#b07a4f", hair: "#1a1a1a", shirt: "#f2f2f2", prop: "chart", style: "short", blazer: "#1b9aaa" },  // Gabriel: teal cardigan over white shirt
   // SOFTWARE: Joseph (lead, calm carpenter's cardigan, greying), Devin (dev, hoodie + headphones), Tess (tester), Dex (deployer, hi-vis)
   lead:      { x: 60,  y: 340, skin: "#d8a47f", hair: "#7d7d7d", shirt: "#e9edc9", prop: "arch", style: "short", blazer: "#7f5539", beard: true },
   developer: { x: 150, y: 340, skin: "#f1c27d", hair: "#3e2723", shirt: "#343a40", prop: "code", style: "short", phones: true },
@@ -526,6 +527,7 @@ function drawDesk(x, y, prop, status, t) {
   if (prop === "clipboard") { px(x + 20, y + 10, 7, 8, "#8b5a2b"); px(x + 21, y + 11, 5, 6, "#fff"); px(x + 22, y + 9, 3, 2, "#aaa"); }
   if (prop === "telegram") { px(x + 7, y + 12, 5, 3, "#2aabee"); px(x + 20, y + 14, 6, 4, "#f2c14e"); px(x + 22, y + 13, 2, 1, "#f2c14e"); }
   if (prop === "phone") { px(x + 21, y + 12, 5, 7, "#111"); px(x + 22, y + 13, 3, 5, on ? "#25f4ee" : "#333"); }
+  if (prop === "chart") { px(x + 3, y + 10, 13, 9, "#20242b"); [2, 4, 6, 8].forEach((h, i) => px(x + 5 + i * 2, y + 18 - h, 2, h, glow)); }  // tablet with rising bars
   if (prop === "arch") { px(x - 4, y + 14, 7, 4, "#dbe9f6"); px(x - 3, y + 15, 2, 1, "#1d4e89"); px(x, y + 16, 2, 1, "#1d4e89"); px(x + 20, y + 12, 7, 6, "#6f4518"); px(x + 21, y + 13, 5, 1, "#c9a227"); }  // blueprint + tool box
   if (prop === "code") { px(x + 18, y + 11, 10, 7, "#2b2b2b"); ["#90e0ef", "#f4a261", "#b5e48c"].forEach((c, i) => px(x + 19 + i, y + 12 + i * 2, 6 - i, 1, on ? c : "#555")); px(x - 4, y + 15, 4, 3, "#ffd60a"); px(x - 3, y + 14, 2, 1, "#ffd60a"); px(x - 5, y + 16, 1, 1, "#f77f00"); }  // 2nd screen + rubber duck
   if (prop === "tests") { const bad = status === "error"; px(x + 19, y + 12, 8, 6, "#fff"); for (let i = 0; i < 2; i++) px(x + 20, y + 13 + i * 2, 2, 1, bad && i ? "#c1121f" : "#2d9d5c"); px(x + 23, y + 13, 3, 1, "#999"); px(x + 23, y + 15, 3, 1, "#999"); }  // checklist
@@ -641,11 +643,14 @@ function handoffTarget(e) {
   if (e.agent === "lead") return m.includes("devin") ? "developer" : m.includes("boss") ? "boss" : null;
   if (e.agent === "developer") return m.includes("joseph") ? "lead" : "tester";   // stuck -> asks Joseph
   if (e.agent === "tester") return m.includes("devin") ? "developer" : "lead";
+  if (e.agent === "social" && m.includes("gabriel")) return "strategist";        // Sofia -> Gabriel (same room)
+  if (e.agent === "strategist") return m.includes("boss") ? "boss" : "social";   // Gabriel -> Boss (via SOCIAL door) or Sofia
   return NEXT[e.agent] || null;
 }
 // Walks go room to room through the doorways. Points are a character's top-left; one pair per door (each side).
 const ROOM_OF = { planner: "NEWSROOM", writer: "NEWSROOM", checker: "NEWSROOM", editor: "NEWSROOM", producer: "NEWSROOM",
                   boss: "BOSS", narrator: "STUDIO", renderer: "STUDIO", clerk: "FRONT DESK", social: "SOCIAL",
+                  strategist: "SOCIAL",
                   lead: "SOFTWARE", developer: "SOFTWARE", tester: "SOFTWARE", deployer: "SOFTWARE" };
 const DOORS = [
   ["NEWSROOM", "BOSS", [276, 86], [304, 86]],
@@ -826,6 +831,7 @@ function drawEmote(id, x, y, t) {                // 9x9 icon above a working age
     tester: () => { px(X + 1, Y + 4, 2, 2, "#2d9d5c"); px(X + 3, Y + 6, 2, 2, "#2d9d5c"); for (let i = 0; i < 4; i++) px(X + 5 + i, Y + 5 - i, 2, 2, "#2d9d5c"); },   // check mark
     deployer: () => { px(X + 3, Y, 3, 6, "#adb5bd"); px(X + 4, Y - 1, 1, 1, "#adb5bd"); px(X + 1, Y + 4, 2, 3, "#e63946"); px(X + 6, Y + 4, 2, 3, "#e63946"); px(X + 3, Y + 6 + ((t >> 7) & 1), 3, 2, "#ffb703"); },   // rocket
     social: () => { px(X + 1, Y + 1, 3, 3, "#e63946"); px(X + 5, Y + 1, 3, 3, "#e63946"); px(X, Y + 2, 9, 3, "#e63946"); px(X + 1, Y + 5, 7, 2, "#e63946"); px(X + 3, Y + 7, 3, 1, "#e63946"); px(X + 4, Y + 8, 1, 1, "#e63946"); },
+    strategist: () => { [2, 4, 6].forEach((h, i) => px(X + i * 2, Y + 9 - h, 2, h, "#2d9d5c")); for (let i = 0; i < 3; i++) px(X + 6 + i, Y + 3 - i, 1, 1, "#2d9d5c"); px(X + 8, Y, 1, 3, "#2d9d5c"); px(X + 6, Y, 3, 1, "#2d9d5c"); },   // rising bars + up-arrow
   };
   (E[id] || (() => {}))();
 }
@@ -1468,12 +1474,13 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   gate.style.display = "none";
   const names = { boss: ["Boss", "Owner (you)"], planner: ["Pat", "Planner"], writer: ["Wren", "Writer"], checker: ["Brother Luke", "Scripture Checker"],
     editor: ["Eddie", "Editor"], producer: ["Priya", "Producer (coordinator)"], narrator: ["Rusty", "Narrator"], renderer: ["Rex", "Renderer"],
-    clerk: ["Clara", "Approval Clerk"], social: ["Sofia", "Social Manager"],
+    clerk: ["Clara", "Approval Clerk"], social: ["Sofia", "Social Manager"], strategist: ["Gabriel", "Growth Strategist"],
     lead: ["Joseph", "Lead Engineer"], developer: ["Devin", "Developer"], tester: ["Tess", "Tester"], deployer: ["Dex", "Deployer"] };
   const script = [["planner", "working", "Reading today's Mass readings"], ["writer", "working", "Writing draft 1"],
     ["checker", "working", "Checking quotes against the Douay-Rheims"], ["editor", "working", "Reviewing draft 1"],
     ["narrator", "working", "Recording the narration"], ["renderer", "working", "Rendering the video"],
     ["clerk", "waiting", "Waiting for the Boss to approve"], ["social", "working", "Posting the Instagram Reel"],
+    ["strategist", "working", "Reviewing last week's numbers"],
     ["producer", "working", "Escalated to the software team: Demo run failed (#99)"], ["lead", "working", "Investigating #99"],
     ["developer", "working", "Building #99"], ["tester", "working", "Testing #99"], ["deployer", "working", "Deploying #99"]];
   const now = () => new Date().toISOString();
