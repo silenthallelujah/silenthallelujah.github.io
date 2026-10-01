@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-01 18:41">
+<meta name="build" content="2026-10-01 18:48">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1027,6 +1027,7 @@ const meetingOn = () => [...MEET.values()].some(m => m.leaveAt == null);
 function syncMeeting() {
   const hb = S.heartbeat.meeting, info = hb?.info || {};
   const live = !!info.on && Date.now() < (info.until || Date.parse(hb?.at || 0) + 90 * 60000);
+  MEET_KEY = live ? (info.key || info.topic || null) : null;
   const members = live ? (info.members || []).filter(id => CAST[id] && id !== "boss").slice(0, SEATS.length) : [];
   const ids = live ? ["boss", ...members] : [];
   const now = performance.now();
@@ -1084,6 +1085,8 @@ function meetTick(t) {                                         // the conversati
     ML.ask = ask ? { who: next, until: t + 2300 } : null;
     ML.speaker = next; ML.from = t + (ask ? 2300 : 0); ML.until = ML.from + 5000 + Math.random() * 4000;
     ML.board = Math.min(ML.board + 1, 4);
+    if (IS_DEMO) setTimeout(() => say(next, pick(["Could we start with a psalm series?", "How long can the voice stay steady?", "I like the Advent idea.",
+      "Do we have the source text for that?", "That fits the ten-minute length.", "Let's pilot it next week."]), MEET_KEY), ask ? 2300 : 0);
   }
   for (const id of seated) {
     if (id === ML.speaker && t >= ML.from) continue;
@@ -1250,7 +1253,13 @@ function placeOverlay(t) {
     } else b.classList.add("hide");
   }
 }
-function say(id, text) { if (CAST[id] && text) S.bubbles.set(id, { text, at: Date.now() }); }
+let MEET_KEY = null;                               // the running meeting's key; events with this `day` are meeting talk
+function say(id, text, day) {
+  if (!CAST[id] || !text) return;
+  const m = MEET.get(id);
+  if (m && m.leaveAt == null && day !== MEET_KEY) return;     // in a meeting: no "Rendering the video" bubbles - that is desk work
+  S.bubbles.set(id, { text, at: Date.now() });
+}
 
 // ---------- panels ----------
 const STEPS = [
@@ -1572,7 +1581,7 @@ function subscribe() {
       renderRoster(); renderTasks(); renderHealth();
     })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "events" }, p => {
-      S.events.unshift(p.new); say(p.new.agent, p.new.message); renderFeed();
+      S.events.unshift(p.new); say(p.new.agent, p.new.message, p.new.day); renderFeed();
       if (p.new.kind === "handoff") {
         const to = handoffTarget(p.new);
         if (p.new.agent === "clerk" && to === "boss") sendDove(); else walk(p.new.agent, to);   // approvals travel by dove
@@ -1690,7 +1699,7 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
     if (id === "social") setTimeout(celebrate, 2500);                       // preview the go-live celebration
     say(id, act); i++; renderAll();
   };
-  if (QS.has("meeting")) S.heartbeat.meeting = { at: new Date().toISOString(), info: { on: true, topic: "Demo team meeting",
+  if (QS.has("meeting")) S.heartbeat.meeting = { at: new Date().toISOString(), info: { on: true, topic: "Demo team meeting", key: "demo",
     members: ["planner", "writer", "checker", "editor", "producer", "narrator", "renderer", "clerk", "social", "strategist", "lead", "developer", "tester"],
     until: Date.now() + 10 * 60000 } };   // ?demo&meeting previews the gathering
   tick(); setInterval(tick, 4000);
