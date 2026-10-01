@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-01 17:29">
+<meta name="build" content="2026-10-01 18:00">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,7 +31,8 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 @media (max-width: 900px) { main { grid-template-columns: minmax(0, 1fr); } }
 .card { background: var(--panel); border: 2px solid var(--line); border-radius: 6px; padding: 14px; }
 .card h2 { font: 10px/1.6 var(--pixel); margin: 0 0 10px; color: var(--gold); letter-spacing: .5px; }
-#stage { position: relative; width: 100%; aspect-ratio: 480 / 417; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; background: #000; }
+#stagewrap { padding: 16px 16px 0; }
+#stage { position: relative; width: min(100%, calc((100vh - 110px) * 690 / 417)); margin: 0 auto; aspect-ratio: 690 / 417; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; background: #000; }
 #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
 #overlay { position: absolute; inset: 0; pointer-events: none; }
 .tag { position: absolute; transform: translate(-50%, 0); font: 600 clamp(8px, 1.15vw, 11px)/1 var(--body); background: rgba(10,10,18,.8);
@@ -57,7 +58,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 body.tvmode { overflow: hidden; }
 body.tvmode::before { content: ""; position: fixed; inset: 0; background: #000; z-index: 40; }
 body.tvmode #stage { position: fixed; z-index: 41; left: 50%; top: calc(50% - 2.2vh); transform: translate(-50%, -50%);
-  width: min(100vw, calc(92vh * 480 / 417)); border: 3px solid var(--season, var(--line)); border-radius: 0; }
+  width: min(100vw, calc(92vh * 690 / 417)); border: 3px solid var(--season, var(--line)); border-radius: 0; }
 body.tvmode #gate { display: none !important; }
 body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right: 0; bottom: 0; height: 5vh; min-height: 30px;
   align-items: center; gap: 2.5vw; padding: 0 2vw; background: #0d0c14; border-top: 2px solid var(--season, var(--line));
@@ -213,10 +214,9 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
 <div id="alerts" class="hide"></div>
 <div id="tvbar"><span id="tvclock"></span><span id="tvstatus"></span><span id="tvtoday"></span><span id="tvnext"></span><span id="tvpc"></span>
   <button id="tvexit" class="ghost" title="Exit TV mode (Esc)">✕</button></div>
-<main>
-  <section class="col">
+<div id="stagewrap">
     <div id="stage">
-      <canvas id="cv" width="480" height="417"></canvas>
+      <canvas id="cv" width="690" height="417"></canvas>
       <div id="overlay"></div>
       <div id="gate"><div class="box">
         <h3>STAFF ONLY</h3>
@@ -226,6 +226,9 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
         <p id="loginmsg" class="muted"></p>
       </div></div>
     </div>
+</div>
+<main>
+  <section class="col">
     <div class="card">
       <h2>WHO'S DOING WHAT</h2>
       <div id="roster"></div>
@@ -289,8 +292,8 @@ const SUPABASE_KEY = "sb_publishable_c6CRjz1B0cvQXV-bFJoqKg_8wkL49Nh";
 const OWNER = "silent.hallelujah.324@gmail.com";
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ---------- people & places (logical 480x417 canvas, 1 unit = 1 art pixel) ----------
-const W = 480, H = 417;
+// ---------- people & places (logical 690x417 canvas, 1 unit = 1 art pixel) ----------
+const W = 690, H = 417;
 // x, y = top-left of the seated character (head at y, desk top at y + 18)
 const CAST = {
   planner:  { x: 33,  y: 57,  skin: "#f1c27d", hair: "#6b3e26", shirt: "#4f8cff", prop: "calendar", style: "short", lanyard: true },
@@ -298,7 +301,7 @@ const CAST = {
   checker:  { x: 153, y: 57,  skin: "#f5d0a9", hair: "#8d6e63", shirt: "#6d4c41", prop: "bible", style: "tonsure", habit: true },
   editor:   { x: 213, y: 57,  skin: "#c68642", hair: "#2b2b2b", shirt: "#2a9d8f", prop: "redpen", style: "short", glasses: true },
   producer: { x: 123, y: 108, skin: "#8d5524", hair: "#111", shirt: "#9b5de5", prop: "clipboard", style: "bun", blazer: "#6a3fb5" },
-  boss:     { x: 384, y: 38,  skin: "#e0ac69", hair: "#2b2b2b", shirt: "#f2f2f2", prop: "boss", style: "side", tie: "#c1121f", blazer: "#2b2d42" },
+  boss:     { x: 384, y: 70,  skin: "#e0ac69", hair: "#2b2b2b", shirt: "#f2f2f2", prop: "boss", style: "side", tie: "#c1121f", blazer: "#2b2d42" },
   narrator: { x: 45,  y: 210, skin: "#f1c27d", hair: "#b5651d", shirt: "#8a5a44", prop: "mic", style: "short", phones: true, beard: true, plaid: "#6b3f2e" },
   renderer: { x: 126, y: 210, skin: "#ffdbac", hair: "#f4d03f", shirt: "#264653", prop: "screens", style: "beanie", beanie: "#e63946" },
   clerk:    { x: 249, y: 210, skin: "#c68642", hair: "#3e2723", shirt: "#ff8fab", prop: "telegram", style: "long", headset: true },
@@ -315,8 +318,9 @@ const ROOMS = [
   { name: "BOSS", x: 300, y: 0, w: 180, h: 159, floor: ["#7a2e3a", "#702a35"], wall: "#4a3b5c" },
   { name: "STUDIO", x: 0, y: 162, w: 189, h: 126, floor: ["#3b3f4a", "#353945"], wall: "#2c3e50" },
   { name: "FRONT DESK", x: 192, y: 162, w: 132, h: 126, floor: ["#8a7560", "#806c58"], wall: "#46604f" },
-  { name: "SOCIAL", x: 327, y: 162, w: 153, h: 126, floor: ["#5b6c8f", "#546484"], wall: "#51456b" },
-  { name: "SOFTWARE", x: 0, y: 291, w: 480, h: 126, floor: ["#4a5a52", "#43524b"], wall: "#2f3e46" },
+  { name: "SOCIAL", x: 327, y: 162, w: 363, h: 126, floor: ["#5b6c8f", "#546484"], wall: "#51456b" },
+  { name: "MEETING", x: 483, y: 0, w: 207, h: 159, floor: ["#7b6244", "#725a3e"], wall: "#3d2f4f" },
+  { name: "SOFTWARE", x: 0, y: 291, w: 690, h: 126, floor: ["#4a5a52", "#43524b"], wall: "#2f3e46" },
 ];
 
 const cv = document.getElementById("cv"), g = cv.getContext("2d");
@@ -340,7 +344,7 @@ function effStatus(a) {
 }
 
 // ---------- drawing ----------
-const WINDOWS = { NEWSROOM: [15, 66], BOSS: [368, 434], STUDIO: [], "FRONT DESK": [], SOCIAL: [], SOFTWARE: [] };   // front desk + software are inner rooms
+const WINDOWS = { NEWSROOM: [15, 66], BOSS: [368, 434], STUDIO: [], "FRONT DESK": [], SOCIAL: [], SOFTWARE: [], MEETING: [495, 662] };   // front desk + software are inner rooms
 function disc(cx, cy, r, c) { for (let dy = -r; dy <= r; dy++) { const w = Math.round(Math.sqrt(r * r - dy * dy)); px(cx - w, cy + dy, 2 * w + 1, 1, c); } }
 function line(x0, y0, x1, y1, c) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1; for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, c); }
 function drawRoom(r, night, t) {
@@ -405,6 +409,7 @@ function drawWalls() {
   const wall = "#1a1a24";
   px(297, 0, 3, 159, wall); px(0, 159, W, 3, wall); px(189, 162, 3, 126, wall); px(324, 162, 3, 126, wall);
   px(297, 90, 3, 28, "#6d5a4b");                                     // newsroom <-> Boss (side wall)
+  px(480, 0, 3, 159, wall); px(480, 125, 3, 32, "#702a35"); px(480, 123, 3, 2, "#5c3d2e"); px(480, 157, 3, 2, "#5c3d2e");   // Boss <-> meeting room (doorway at the bottom)
   px(0, 288, W, 3, wall);                                             // software row
   // doorways into the lower rooms: a gap in the wall line + an opening framed through the room's back wall
   [[90, 159, "#3b3f4a"], [240, 159, "#8a7560"], [332, 159, "#5b6c8f"], [206, 288, "#4a5a52"]].forEach(([x, y, floor]) => {
@@ -502,6 +507,25 @@ function drawDecor(t) {
   px(446, 318, 28, 64, "#212529"); px(448, 320, 24, 60, "#343a40");                          // server rack
   for (let i = 0; i < 7; i++) { px(450, 323 + i * 8, 20, 6, "#495057"); px(452 + ((t >> (6 + (i % 3))) & 1) * 3, 325 + i * 8, 2, 2, (i + (t >> 9)) % 3 ? "#2dc653" : "#4ea8de"); }
   drawPlant(8, 384, true); drawPlant(236, 390, false);
+  // wider Social + Software rooms: lounges, wall art
+  px(520, 258, 84, 22, "#6b5b95"); px(520, 248, 84, 11, "#8a79b8"); px(516, 252, 6, 28, "#5c4d80"); px(602, 252, 6, 28, "#5c4d80"); px(540, 284, 44, 8, "#9d8f77");
+  drawPlant(640, 250, true);
+  [[500, "#f2c14e", "#2a3a5f"], [528, "#e76f51", "#264653"], [556, "#8ecae6", "#1d3557"]].forEach(([x, a, b]) => { px(x, 166, 16, 14, a); px(x + 2, 168, 12, 10, b); });
+  px(520, 356, 84, 22, "#4a6fa5"); px(520, 346, 84, 11, "#6d8fc7"); px(516, 350, 6, 28, "#3a5a8a"); px(602, 350, 6, 28, "#3a5a8a"); px(540, 382, 44, 8, "#9d8f77");
+  drawPlant(640, 350, true); drawPlant(500, 392, false);
+  // MEETING ROOM: whiteboard on the wall, a long table with chairs all round, the Boss's chair at the east end
+  px(545, 2, 84, 17, "#bfbfbf"); px(546, 3, 82, 15, "#f7f7f7");
+  const bl = ML.board;                                                                     // lines appear as the discussion goes on
+  for (let k = 0; k < Math.min(bl, 4); k++) px(549, 5 + k * 3, [58, 40, 66, 34][k], 1, k % 2 ? "#1d4e89" : "#c1121f");
+  SEATS.forEach(sx => {
+    if (sx.back) { px(sx.x, sx.y + 8, 19, 24, "#3a3144"); px(sx.x + 1, sx.y + 8, 17, 2, "#51465f"); }          // chair seen from behind
+    else { px(sx.x + 1, sx.y + 8, 17, 22, "#3a3144"); px(sx.x + 1, sx.y + 8, 17, 2, "#51465f"); }
+  });
+  px(652, 52, 30, 42, "#5a1f2b"); px(652, 52, 30, 3, "#7a2e3a"); px(650, 70, 4, 22, "#4a1822"); px(680, 70, 4, 22, "#4a1822");   // the Boss's chair
+  px(494, 78, 158, 24, "#9a6a3a"); px(494, 78, 158, 2, "#b88650"); px(494, 100, 158, 5, "#6b4423"); px(496, 105, 4, 10, "#4a2e12"); px(646, 105, 4, 10, "#4a2e12");   // the table
+  SEATS.forEach(sx => { px(sx.x + 4, sx.back ? 92 : 82, 10, 6, "#f8f1de"); px(sx.x + 6, sx.back ? 94 : 84, 6, 1, "#9aa"); });   // papers at every seat
+  px(567, 86, 6, 8, "#a8dadc"); px(566, 82, 3, 5, "#ff8fab"); px(570, 81, 3, 6, "#ffd60a");                                    // flowers in the middle
+  drawPlant(668, 132, true);
 }
 function drawDesk(x, y, prop, status, t) {
   const on = status === "working", flick = on && ((t >> 7) & 1);
@@ -539,6 +563,7 @@ function drawBossDesk(x, y) {
   px(x - 16, y + 10, 16, 8, "#333"); px(x - 16, y + 9, 16, 1, "#cfe8ff");
   px(x + 28, y + 13, 5, 5, "#fff"); px(x + 33, y + 14, 2, 2, "#fff"); px(x + 29, y + 12, 3, 1, "#b08968"); // coffee
 }
+let BACKVIEW = false;                              // true while drawing someone seen from behind (facing away from us)
 function drawPerson(c, x, y, status, t, walking, pose) {
   const bob = status === "working" ? ((t >> 8) & 1) : 0, sleepy = status === "idle";
   const hy = y + (sleepy ? 1 : 0) - bob, top = c.blazer || c.shirt;
@@ -557,13 +582,26 @@ function drawPerson(c, x, y, status, t, walking, pose) {
     px(x + 3, y + 12, 13, 12, c.shirt);
     if (c.plaid) for (let i = 0; i < 4; i++) px(x + 4 + i * 3, y + 12, 1, 12, c.plaid);
     if (c.blazer) { px(x + 3, y + 12, 4, 12, c.blazer); px(x + 12, y + 12, 4, 12, c.blazer); }
-    if (c.tie) { px(x + 9, y + 12, 1, 1, c.tie); px(x + 8, y + 13, 3, 8, c.tie); }
-    if (c.lanyard) { px(x + 7, y + 12, 1, 5, "#1d3557"); px(x + 11, y + 12, 1, 5, "#1d3557"); px(x + 7, y + 17, 5, 4, "#fff"); }
+    if (c.tie && !BACKVIEW) { px(x + 9, y + 12, 1, 1, c.tie); px(x + 8, y + 13, 3, 8, c.tie); }
+    if (c.lanyard && !BACKVIEW) { px(x + 7, y + 12, 1, 5, "#1d3557"); px(x + 11, y + 12, 1, 5, "#1d3557"); px(x + 7, y + 17, 5, 4, "#fff"); }
     if (c.scarf) { px(x + 5, y + 11, 9, 2, c.scarf); px(x + 11, y + 13, 2, 5, c.scarf); }
   }
   // arms (typing when working)
   const sleeve = c.habit ? c.shirt : top;
-  if (pose === "stretch") {                                                       // arms up over the head
+  if (pose === "hand") {                                                          // right hand raised (a question)
+    px(x, y + 13, 3, 9, sleeve); px(x, y + 22, 3, 2, c.skin);
+    px(x + 16, y + 1, 3, 12, sleeve); px(x + 16, y - 1, 3, 3, c.skin);
+  } else if (pose === "think") {                                                  // hand at the chin
+    px(x, y + 13, 3, 9, sleeve); px(x, y + 22, 3, 2, c.skin);
+    px(x + 15, y + 10, 3, 7, sleeve); px(x + 12, y + 8, 4, 3, c.skin);
+  } else if (pose === "talk") {                                                   // gesturing while speaking
+    const up = (t >> 8) & 1;
+    px(x, y + 13, 3, 9, sleeve); px(x, y + 22, 3, 2, c.skin);
+    px(x + 16, y + (up ? 7 : 12), 3, 9, sleeve); px(x + 17, y + (up ? 5 : 10), 3, 3, c.skin);
+  } else if (pose === "point") {                                                  // arm out to the side, pointing at someone
+    px(x, y + 13, 3, 9, sleeve); px(x, y + 22, 3, 2, c.skin);
+    px(x + 15, y + 11, 8, 3, sleeve); px(x + 22, y + 11, 4, 2, c.skin);
+  } else if (pose === "stretch") {                                                       // arms up over the head
     px(x + 1, y + 1, 3, 12, sleeve); px(x + 15, y + 1, 3, 12, sleeve); px(x + 1, y - 1, 3, 2, c.skin); px(x + 15, y - 1, 3, 2, c.skin);
   } else if (pose === "read") {                                                   // holding an open book
     px(x, y + 13, 3, 7, sleeve); px(x + 16, y + 13, 3, 7, sleeve);
@@ -589,13 +627,23 @@ function drawPerson(c, x, y, status, t, walking, pose) {
     if (st === "ponytail") px(x + 16, hy + 3, 3, 8, hair);
     if (st === "side") px(x + 7, hy + 1, 1, 2, c.skin);
   }
+  if (BACKVIEW) {                                                                     // seen from behind: hair only, no face
+    px(x + 3, hy + 1, 13, 11, st === "beanie" ? hair : c.habit ? "#5b3a2e" : hair);
+    if (st === "beanie") px(x + 3, hy, 13, 5, c.beanie);
+    if (st === "tonsure") px(x + 7, hy + 2, 5, 3, c.skin);
+    if (st === "long") px(x + 2, hy + 3, 15, 13, hair);
+    if (st === "bun") px(x + 7, hy - 2, 5, 3, hair);
+    if (st === "ponytail") px(x + 8, hy + 10, 3, 9, hair);
+    if (c.phones) { px(x + 4, hy, 11, 1, "#222"); px(x + 1, hy + 4, 3, 5, "#222"); px(x + 15, hy + 4, 3, 5, "#222"); }
+    return;
+  }
   // face: brows, eyes (blink), mouth
   const blink = ((t + x * 97) % 4200) < 140;
   px(x + 5, hy + 4, 3, 1, hair); px(x + 11, hy + 4, 3, 1, hair);
   if (sleepy || blink) { px(x + 5, hy + 6, 3, 1, "#3a2a22"); px(x + 11, hy + 6, 3, 1, "#3a2a22"); }
   else { px(x + 6, hy + 5, 2, 2, "#1b1b1b"); px(x + 11, hy + 5, 2, 2, "#1b1b1b"); px(x + 6, hy + 5, 1, 1, "#fff"); px(x + 11, hy + 5, 1, 1, "#fff"); }
   if (c.beard) { px(x + 4, hy + 7, 11, 4, hair); px(x + 8, hy + 8, 3, 1, "#8a4b3a"); }
-  else px(x + 8, hy + 8, 3, 1, status === "error" ? "#5a2a22" : "#b5654f");
+  else px(x + 8, hy + 8, 3, pose === "talk" && ((t >> 7) & 1) ? 2 : 1, status === "error" ? "#5a2a22" : "#b5654f");
   if (c.glasses) { px(x + 5, hy + 5, 4, 1, "#111"); px(x + 10, hy + 5, 4, 1, "#111"); px(x + 5, hy + 6, 1, 1, "#111"); px(x + 13, hy + 6, 1, 1, "#111"); px(x + 9, hy + 5, 1, 1, "#111"); }
   if (c.phones) { px(x + 4, hy, 11, 1, "#222"); px(x + 3, hy, 1, 3, "#222"); px(x + 15, hy, 1, 3, "#222"); px(x + 1, hy + 4, 3, 5, "#222"); px(x + 15, hy + 4, 3, 5, "#222"); }
   if (c.headset) { px(x + 1, hy + 4, 3, 5, "#333"); px(x + 3, hy + 9, 5, 1, "#333"); px(x + 8, hy + 9, 1, 1, "#e63946"); }
@@ -657,6 +705,7 @@ const DOORS = [
   ["NEWSROOM", "STUDIO", [94, 124], [94, 168]],
   ["NEWSROOM", "FRONT DESK", [244, 124], [244, 168]],
   ["BOSS", "SOCIAL", [336, 124], [336, 168]],
+  ["BOSS", "MEETING", [456, 126], [490, 126]],
   ["FRONT DESK", "SOFTWARE", [210, 256], [210, 300]],
 ];
 function doorRoute(from, to) {                 // waypoints between two rooms (breadth-first over the doors)
@@ -853,7 +902,7 @@ function popFromEvent(e) {                        // green check when work passe
   else if (/ok|approved|done|ready|recorded|rendered/.test(m)) pop(e.agent, "pass");
 }
 // ---------- messenger dove: carries the approval request to the Boss and brings the answer back ----------
-const DOVE_FROM = [262, 214], DOVE_PERCH = [393, 47], DOVE_MS = 3200;
+const DOVE_FROM = [262, 214], DOVE_PERCH = [393, 79], DOVE_MS = 3200;
 let DOVE = null;                                   // { phase: "to" | "perch" | "back", start, approved }
 let STAMP_UNTIL = 0;
 function sendDove() { DOVE = { phase: "to", start: performance.now() }; cue("handoff"); }
@@ -970,26 +1019,35 @@ function walkPos(id, t) {
   return { x, y, walking: !holding, item: w.item === "paper" ? (e < go + hold ? "paper" : null) : w.item,
            pose: w.item === "cup" && holding ? "sip" : null, away: true };
 }
-// ---------- team meetings: the called agents walk to the Boss's office and stand in rows in front of his desk.
-// Triggered by the heartbeat row "meeting" {on, topic, members: [agent ids], until: epoch ms} (office.py --meeting-start/-end).
-const MEET = new Map();                          // id -> { path, cum, start, leaveAt, lift }
-const MEET_SPOTS = [[387, 100], [364, 100], [410, 100], [341, 100], [433, 100], [318, 100], [456, 100],
-                    [398, 130], [375, 130], [421, 130], [352, 130], [444, 130], [329, 130]];   // chair in front, then outwards
+// ---------- team meetings (heartbeat row "meeting": {on, topic, members, until}). The called agents walk to the MEETING room and
+// sit round the long table, the Boss walks in and takes the head seat and leads: someone speaks (their real comment shows as a
+// speech bubble), the others nod, take notes, think, raise a hand or ask "?"; the Boss asks and points; the whiteboard fills up.
+const MEET = new Map();                          // id -> { path, cum, start, leaveAt, seat, lift, arrived }
+const BOSS_SEAT = { x: 657, y: 56, back: false, wp: [646, 120] };
+const SEATS = [];
+[566, 544, 588, 522, 610, 500, 632].forEach(x => {   // centre first: north side faces us, south side has its back to us (facing the Boss)
+  SEATS.push({ x, y: 52, back: false, wp: [489, 52] });
+  SEATS.push({ x, y: 106, back: true, wp: null, below: true });
+});
+const ML = { speaker: null, from: 0, until: 0, ask: null, act: new Map(), bossAct: null, board: 0 };
 const meetingOn = () => [...MEET.values()].some(m => m.leaveAt == null);
 function syncMeeting() {
   const hb = S.heartbeat.meeting, info = hb?.info || {};
   const live = !!info.on && Date.now() < (info.until || Date.parse(hb?.at || 0) + 90 * 60000);
-  const ids = live ? (info.members || []).filter(id => CAST[id] && id !== "boss").slice(0, MEET_SPOTS.length) : [];
+  const members = live ? (info.members || []).filter(id => CAST[id] && id !== "boss").slice(0, SEATS.length) : [];
+  const ids = live ? ["boss", ...members] : [];
   const now = performance.now();
   ids.forEach((id, i) => {
     const m = MEET.get(id);
     if (m && m.leaveAt == null) return;
     WALKS.delete(id);
-    const c = CAST[id], path = [[c.x, c.y], ...doorRoute(ROOM_OF[id], "BOSS"), MEET_SPOTS[i]], cum = [0];
+    const seat = id === "boss" ? BOSS_SEAT : SEATS[i - 1], c = CAST[id];
+    const path = [[c.x, c.y], ...doorRoute(ROOM_OF[id], "MEETING"), ...(seat.wp ? [seat.wp] : []), [seat.x, seat.y]], cum = [0];
     for (let k = 1; k < path.length; k++) cum.push(cum[k - 1] + Math.hypot(path[k][0] - path[k - 1][0], path[k][1] - path[k - 1][1]));
-    MEET.set(id, { path, cum, start: now + i * 250, leaveAt: null, lift: (i % 2) * 10 });   // staggered, alternate tag heights
+    MEET.set(id, { path, cum, start: now + i * 250, leaveAt: null, seat, lift: id === "boss" ? 14 : (Math.round((seat.x - 500) / 22) % 2) * 14, arrived: false });   // staggered
   });
   for (const [id, m] of MEET) if (m.leaveAt == null && !ids.includes(id)) m.leaveAt = now;
+  if (!live) { ML.speaker = null; ML.ask = null; ML.act.clear(); ML.bossAct = null; ML.board = 0; }
 }
 setInterval(syncMeeting, 1000);
 function meetPos(id, t) {
@@ -999,13 +1057,69 @@ function meetPos(id, t) {
   if (m.leaveAt == null) {
     const e = t - m.start;
     if (e < 0) return null;                                    // staggered start: still at the desk
-    const [x, y] = along(m, Math.min(len, e * SPEED)), arrived = e >= go;
-    return { x, y, walking: !arrived, pose: arrived ? "stand" : null, away: true };
+    if (e >= go) { m.arrived = true; return { x: m.seat.x, y: m.seat.y, walking: false, away: true, meet: m.seat }; }
+    const [x, y] = along(m, e * SPEED);
+    return { x, y, walking: true, away: true };
   }
+  m.arrived = false;
   const d0 = Math.min(len, Math.max(0, (m.leaveAt - m.start) * SPEED)), d = d0 - (t - m.leaveAt) * SPEED;
   if (d <= 0) { MEET.delete(id); return null; }                // back at the desk
   const [x, y] = along(m, d);
   return { x, y, walking: true, away: true };
+}
+const pick = list => list[Math.floor(Math.random() * list.length)];
+function rollAct(t) {                                          // what a listener is doing for the next couple of seconds
+  const r = Math.random();
+  const a = r < 0.28 ? { status: "meet" } : r < 0.60 ? { status: "working" }                       // listening / nodding + taking notes
+    : r < 0.72 ? { status: "meet", pose: "think" } : r < 0.82 ? { status: "meet", pose: "hand", emote: "?" }
+    : r < 0.90 ? { status: "working", emote: "bulb" } : r < 0.95 ? { status: "meet", emote: "!" } : { status: "meet", pose: "think", emote: "dots" };
+  a.until = t + 1800 + Math.random() * 3200;
+  return a;
+}
+function meetTick(t) {                                         // the conversation: called every frame while a meeting is on
+  const seated = [...MEET].filter(([id, m]) => id !== "boss" && m.leaveAt == null && m.arrived).map(([id]) => id);
+  if (!seated.length) return;
+  for (const [id, b] of S.bubbles) {                           // a real comment (event) takes the floor
+    if (seated.includes(id) && Date.now() - b.at < 1500 && ML.speaker !== id) {
+      ML.speaker = id; ML.from = t; ML.until = t + 7000; ML.ask = null; ML.board = Math.min(ML.board + 1, 4);
+    }
+  }
+  if (t > ML.until) {                                          // next turn - sometimes the Boss asks someone first
+    const others = seated.filter(id => id !== ML.speaker), next = pick(others.length ? others : seated), ask = Math.random() < 0.45;
+    ML.ask = ask ? { who: next, until: t + 2300 } : null;
+    ML.speaker = next; ML.from = t + (ask ? 2300 : 0); ML.until = ML.from + 5000 + Math.random() * 4000;
+    ML.board = Math.min(ML.board + 1, 4);
+  }
+  for (const id of seated) {
+    if (id === ML.speaker && t >= ML.from) continue;
+    const a = ML.act.get(id);
+    if (!a || t > a.until) ML.act.set(id, rollAct(t));
+  }
+  if (!ML.bossAct || t > ML.bossAct.until) {
+    const r = Math.random();
+    ML.bossAct = { ...(r < 0.55 ? { status: "meet" } : r < 0.8 ? { status: "meet", pose: "think" } : { status: "meet", pose: "talk" }), until: t + 2500 + Math.random() * 3000 };
+  }
+}
+function drawMeetEmote(kind, x, y, t) {                        // 9x9 icon beside the head
+  const X = x + 16, Y = y - 8 + ((t >> 9) & 1), bg = "rgba(255,253,245,.95)";
+  px(X - 2, Y - 2, 13, 13, bg); px(X - 1, Y - 3, 11, 1, bg); px(X - 1, Y + 11, 11, 1, bg);
+  const G = (rows, col) => rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === "#") px(X + 2 + i, Y + 1 + j, 1, 1, col); }));
+  if (kind === "?") G([".###.", "#...#", "....#", "..##.", "..#..", ".....", "..#.."], "#1d4e89");
+  else if (kind === "!") G(["..#..", "..#..", "..#..", "..#..", "..#..", ".....", "..#.."], "#c1121f");
+  else if (kind === "bulb") { disc(X + 4, Y + 3, 3, "#f2b705"); px(X + 3, Y + 7, 3, 2, "#8d99ae"); px(X + 4, Y + 2, 1, 2, "#fff6c9"); }
+  else G([".....", ".....", "#.#.#", ".....", ".....", ".....", "....."], "#6c757d");
+}
+function drawMeetPerson(id, p, t) {
+  const c = CAST[id], seat = p.meet;
+  let a;
+  if (id === "boss") a = ML.ask && t < ML.ask.until ? { status: "meet", pose: "point", emote: "?" } : (ML.bossAct && t < ML.bossAct.until ? ML.bossAct : { status: "meet" });
+  else if (id === ML.speaker && t >= ML.from) a = { status: "meet", pose: "talk" };
+  else if (ML.ask && ML.ask.who === id && t < ML.ask.until) a = { status: "meet", pose: "think", emote: "dots" };   // being asked
+  else a = ML.act.get(id) || { status: "meet" };
+  BACKVIEW = !!seat.back;
+  drawPerson(c, p.x, p.y, a.status, t, false, a.pose);
+  BACKVIEW = false;
+  if (a.emote) drawMeetEmote(a.emote, p.x, p.y, t);
 }
 function agentPos(id, t) {
   const c = CAST[id], w = meetPos(id, t) || walkPos(id, t);
@@ -1045,14 +1159,18 @@ function draw(t) {
   drawWalls(); drawDecor(t); drawSeason(t);
   const dt = Math.min(100, t - (draw.last || t)); draw.last = t;
   idleTick(t);
+  if (meetingOn()) meetTick(t);
   const catMoving = catTick(dt);
   if (CAT.y < 96) drawCat(t, catMoving);                                          // behind the desks when "up" the room
   for (const id of Object.keys(CAST)) {
     const c = CAST[id], st = effStatus(S.agents.get(id)), p = agentPos(id, t);
     const cheer = cheering();
     if (id === "boss") {
-      drawPerson(c, p.x, p.y, cheer ? "walk" : st, t, false, cheer ? "stretch" : null); drawBossDesk(c.x, c.y); drawPop(id, p.x, p.y); continue;
+      if (p.meet) { drawBossDesk(c.x, c.y); drawMeetPerson(id, p, t); drawPop(id, p.x, p.y); continue; }      // leading the meeting
+      const bw = !!p.walking;
+      drawPerson(c, p.x, p.y, bw || cheer ? "walk" : st, t, bw, bw ? null : cheer ? "stretch" : null); drawBossDesk(c.x, c.y); drawPop(id, p.x, p.y); continue;
     }
+    if (p.meet) { drawDesk(c.x, c.y, c.prop, "idle", t); drawMeetPerson(id, p, t); drawPop(id, p.x, p.y); continue; }
     if (p.away || p.walking) {
       drawDesk(c.x, c.y, c.prop, "idle", t);
       drawPerson(c, p.x, p.y, "walk", t, p.walking, p.pose);
@@ -1120,13 +1238,13 @@ function placeOverlay(t) {
   for (const id of Object.keys(CAST)) {
     const a = S.agents.get(id), p = agentPos(id, t), st = effStatus(a);
     const tg = tags[id];
-    const meeting = p.pose === "stand";
+    const meeting = !!p.meet;
     const full = a?.name || id, label = (overlay.clientWidth < 560 || meeting) ? full.split(" ").pop() : full;   // "Brother Luke" -> "Luke" on phones / in meetings
     const role = (overlay.clientWidth < 560 || meeting) ? "" : (ROLE_SHORT[id] || a?.role || "");   // phones: name only (no room)
     const html = `<i style="background:${STATUS_COLOR[st]}"></i>${esc(label)}${role ? `<span class="rl">${esc(role)}</span>` : ""}`;
     if (tg.innerHTML !== html) tg.innerHTML = html;
-    tg.style.left = pct(p.x + 9 + (role ? TAG_DX[id] || 0 : 0), W); tg.style.top = meeting ? pct(p.y - 11 - (MEET.get(id)?.lift || 0), H) : pct(p.y + (id === "boss" ? 39 : 41), H);
-    tg.style.display = id === "boss" && meetingOn() ? "none" : "";
+    tg.style.left = pct(p.x + 9 + (role ? TAG_DX[id] || 0 : 0), W); tg.style.top = meeting ? pct(p.meet.below ? p.y + 33 + (MEET.get(id)?.lift || 0) : p.y - 11 - (MEET.get(id)?.lift || 0), H) : pct(p.y + (id === "boss" ? 39 : 41), H);
+    tg.style.opacity = meeting && ML.act.get(id)?.emote ? "0.25" : "";
     tg.classList.toggle("sel", S.selected === id);
     const b = bubbleEls[id], msg = S.bubbles.get(id);
     if (msg && shown.has(id)) {
