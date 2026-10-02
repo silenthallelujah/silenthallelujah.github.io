@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-01 18:48">
+<meta name="build" content="2026-10-02 09:53">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1275,7 +1275,7 @@ function renderToday() {
   const idx = run ? STAGE_INDEX[run.stage] ?? 0 : -1;
   title.innerHTML = run ? `<b>${esc(run.title || "Untitled yet")}</b> <span class="badge">${esc(run.format || "")}</span>`
       + (Object.keys(run.platforms || {}).length ? `<div class="pfs">${platformChips(run)}</div>` : "")
-    : (manilaHour() < 10 ? "The team starts at 10:00." : "No run recorded for today yet.");
+    : (manilaHour() < 10 ? "The team starts at 10:00 AM PHT." : "No run recorded for today yet.");
   const pm = S.runs.find(r => r.day === day + "-pm");
   const STAGE_LABEL = { planning: "planning", writing: "writing", revising: "being revised", narrating: "recording",
     rendering: "rendering", awaiting_approval: "waiting for your approval", approved: "approved", rejected: "rejected",
