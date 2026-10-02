@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-02 09:53">
+<meta name="build" content="2026-10-02 10:01">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1512,6 +1512,15 @@ function weekDates() {                          // Mon..Sun of this week in Mani
   const d = new Date(manilaDay() + "T00:00:00Z"), wd = (d.getUTCDay() + 6) % 7;
   return DAYS.map((_, i) => new Date(d.getTime() + (i - wd) * 86400000).toISOString().slice(0, 10));
 }
+function longformBlock(sc) {                    // the weekly long-form slot (YouTube only), from schedule.json "longform"
+  const lf = sc.longform; if (!lf || lf.enabled === false) return "";
+  const q = (lf.queue || []).map((v, i) => `<tr><td>${i + 1}</td><td><div class="stype">${esc(v.psalm)}</div><div class="snote">${esc(v.title || "")}</div></td>
+      <td>${esc(v.made || "")}</td><td>first free Saturday after your approval</td></tr>`).join("");
+  return `<h4 class="uph">LONG-FORM · ${esc(lf.series || "")} · YOUTUBE ONLY</h4>
+    <div class="muted" style="font-size:12px;margin:2px 0 6px">Goes live Saturdays at ${etPht(lf.release_et || "06:00")}; ${esc(lf.then || "one a week")} after the first two.
+    Needs your script approval, then your approval of the finished video (at least 36 hours before it goes live).</div>
+    ${q ? `<table class="sgrid up"><thead><tr><th>#</th><th>PSALM</th><th>MADE ON</th><th>RELEASE</th></tr></thead><tbody>${q}</tbody></table>` : ""}`;
+}
 function renderSchedule() {
   const sc = S.schedule, body = document.getElementById("schedbody"), badge = document.getElementById("schedbadge");
   if (!sc) { body.textContent = "The schedule appears after sign-in."; badge.textContent = ""; return; }
@@ -1549,6 +1558,7 @@ function renderSchedule() {
     ${up.length ? `<h4 class="uph">COMING UP · NEXT 7 DAYS</h4>
     <table class="sgrid up"><thead><tr><th>DAY</th><th>LITURGICAL DAY / SAINT</th><th>MORNING</th><th>EVENING</th></tr></thead><tbody>${upRows}</tbody></table>
     <div class="muted" style="font-size:11.5px;margin-top:4px">From the Evangelizo feed, refreshed at each 10:00 AM run (last ${ago(S.upcoming.generated)}).</div>` : ""}
+    ${longformBlock(sc)}
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
 function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderAccounts(); renderScreens(); paintSeason(); }
