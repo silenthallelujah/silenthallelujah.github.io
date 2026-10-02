@@ -12,7 +12,7 @@
   <header>
     <img src="logo.png" alt="Silent Hallelujah logo">
     <h1>Privacy Policy</h1>
-    <p class="muted">Effective 26 September 2026</p>
+    <p class="muted">Effective 26 September 2026 · updated 2 October 2026</p>
   </header>
 
   <p>This policy explains how Silent Hallelujah ("we") handles information in "Silent Hallelujah Publisher", the
@@ -24,16 +24,27 @@
 
   <h2>What we access, and why</h2>
   <ul>
-    <li><b>YouTube (Google)</b> - with our permission, the tool uploads our approved videos to our channel and reads our
-    own channel name to confirm it is connected to the right channel. It uses the YouTube API Services.</li>
-    <li><b>Facebook, Instagram and TikTok</b> - when connected, the tool publishes our approved videos to our own
-    Page and accounts and reads the minimum account information needed to do so.</li>
+    <li><b>YouTube (Google) - YouTube API Services.</b> With the channel owner's permission the tool uses three
+    Google scopes: <code>youtube.upload</code> (to upload and schedule our approved videos and set their thumbnails),
+    <code>youtube.readonly</code> (to read our own channel and the status and public view, like and comment counts of
+    our own videos) and <code>youtube.force-ssl</code> (to manage our own playlist and to read and reply to comments on
+    our own videos).</li>
+    <li><b>Comments on our own videos.</b> The tool reads the comments that viewers leave on our own recent videos on
+    YouTube, Facebook and Instagram (comment text, the commenter's display name and the comment ID). It uses them only
+    to draft a short thank-you or prayer reply for the channel owner. A reply is posted only after the owner approves
+    that exact reply. The tool never likes, deletes, hides or reports comments and does not look at anything else
+    about the commenter.</li>
+    <li><b>Facebook, Instagram and TikTok</b> - when connected, the tool publishes our approved videos to our own Page
+    and accounts and reads the minimum account information needed to do so.</li>
   </ul>
-  <p>We do not access, collect or store other users' data, comments, messages or contacts.</p>
+  <p>We do not access data from other YouTube channels, and we do not read private messages or contacts.</p>
 
-  <h2>How it is stored</h2>
-  <p>Access tokens that let the tool post to our accounts are stored only on our own computer, are never sold or
-  shared, and are used only to publish our content. We do not use any data for advertising.</p>
+  <h2>How it is stored, and for how long</h2>
+  <p>Access tokens that let the tool post to our accounts are stored only on our own computer. Comment text and
+  display names are kept in a local file on that same computer only while we reply to them, and are automatically
+  erased after 30 days (only the opaque comment ID is kept, so that no comment is handled twice). Nothing is shared
+  with third parties, sold, used for advertising, or used to train any model. We do not use any data for
+  advertising.</p>
 
   <h2>Google API Services</h2>
   <p>Silent Hallelujah Publisher's use and transfer of information received from Google APIs adheres to the
@@ -49,8 +60,10 @@
   server logs (see GitHub's privacy statement).</p>
 
   <h2>Deleting data</h2>
-  <p>Because the tool only stores our own access tokens, there is no user data to delete. If you believe we hold
-  information about you, email us and we will respond and delete it.</p>
+  <p>Comment text and names are erased automatically after 30 days. If you want a comment you left removed earlier,
+  or you believe we hold information about you, email us and we will delete it. Access can be revoked at any time at
+  <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>; after revocation the tool
+  can no longer read or post anything on the channel.</p>
 
   <h2>Changes and contact</h2>
   <p>We will update this page if anything changes. Questions:
