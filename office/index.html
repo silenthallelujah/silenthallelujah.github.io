@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-02 10:18">
+<meta name="build" content="2026-10-02 10:24">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1341,8 +1341,15 @@ function platformChips(r) {                     // per-platform state (from publ
                : `<span class="pf pf-${esc(s.state)}"${tip}>${esc(label)}</span>`;
   }).join("");
 }
+function runDate(day) {                          // "2026-10-02" -> MM-DD over AM; "2026-10-02-pm" -> PM; "lf-22-20261002" -> long-form
+  let m = /^(\d{4})-(\d\d)-(\d\d)(-pm)?$/.exec(day);
+  if (m) return `${m[2]}-${m[3]}<br><span class="snote">${m[4] ? "PM" : "AM"}</span>`;
+  m = /^lf-\d+-(\d{4})(\d\d)(\d\d)$/.exec(day);
+  if (m) return `${m[2]}-${m[3]}<br><span class="snote">Long-form</span>`;
+  return esc(day.slice(5));
+}
 function renderRuns() {
-  document.getElementById("runs").innerHTML = S.runs.filter(r => !/^test-/.test(r.day)).slice(0, 10).map(r => `<tr><td class="muted">${esc(r.day.slice(5))}</td>
+  document.getElementById("runs").innerHTML = S.runs.filter(r => !/^test-/.test(r.day)).slice(0, 10).map(r => `<tr><td class="muted">${runDate(r.day)}</td>
     <td><b>${esc(r.title || "-")}</b><br><span class="badge">${esc(r.format || "")}</span><span class="badge">${esc(r.stage)}</span>
     <div class="pfs">${platformChips(r)}</div></td></tr>`).join("");
 }
