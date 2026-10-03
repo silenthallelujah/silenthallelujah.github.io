@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-02 10:24">
+<meta name="build" content="2026-10-03 22:29">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -149,6 +149,9 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .meter div { height: 100%; background: var(--work); } .meter.amber div { background: var(--wait); } .meter.red div { background: var(--err); }
 .cr { margin-bottom: 3px; }
 .acct { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.subrow { display: flex; align-items: baseline; gap: 8px; padding: 5px 0; border-top: 1px solid var(--line); }
+.subrow:first-child { border-top: 0; } .subrow .n { font: 700 22px/1 var(--head, inherit); color: var(--gold); min-width: 3ch; }
+.subrow .w { flex: 1; font-size: 13px; } .subrow .up { color: var(--work); font-size: 12px; white-space: nowrap; }
 .acct:first-child { border-top: 0; } .acct i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .acct .d { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .feed { max-height: 320px; overflow: auto; font-size: 13px; }
@@ -256,6 +259,10 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
     <div class="card">
       <h2>RECENT VIDEOS</h2>
       <table class="runs"><tbody id="runs"></tbody></table>
+    </div>
+    <div class="card">
+      <h2>SUBSCRIBERS</h2>
+      <div id="subs" class="muted">Loading…</div>
     </div>
     <div class="card">
       <h2>ACCOUNTS</h2>
@@ -1221,7 +1228,16 @@ function renderScreens() {
   const pm = S.runs.find(x => x.day === day + "-pm")?.format || S.schedule?.grid?.evening?.[wd];
   const wb = `<b>TODAY</b><br>☀ ${esc(label(am))}<br>☾ ${esc(label(pm))}`;
   if (wbEl.innerHTML !== wb) wbEl.innerHTML = wb;
+  fitWb();
 }
+function fitWb() {                                  // shrink the board text until every line is visible (the board is small)
+  wbEl.style.fontSize = "";
+  if (!wbEl.clientHeight) return;                   // not laid out yet (hidden tab): nothing to measure
+  for (let s = 0.92; s >= 0.34 && (wbEl.scrollHeight > wbEl.clientHeight + 1 || wbEl.scrollWidth > wbEl.clientWidth + 1); s -= 0.04)
+    wbEl.style.fontSize = `${s.toFixed(2)}cqw`;
+}
+addEventListener("resize", () => fitWb());
+new ResizeObserver(() => fitWb()).observe(overlay);
 const ROLE_SHORT = { boss: "Owner (you)", producer: "Producer" };   // shorter role text for the tags + roster
 const TAG_DX = { checker: 12 };   // art px: Luke's two-line tag would sit on Priya's head (she is just below-left of him)
 const tags = {}, bubbleEls = {};
@@ -1367,6 +1383,19 @@ function renderAccounts() {
     return `<div class="acct"><i style="background:${r.ok ? "var(--work)" : "var(--err)"}"></i><div><b>${name}</b>
       <div class="d">${r.ok ? esc(r.detail) : "BROKEN: " + esc(r.detail)}</div></div></div>`;
   }).join("") + `<div class="muted" style="margin-top:6px">Checked ${ago(c.at)}${old ? " - the hourly check is overdue" : ""}</div>`;
+}
+const SUB_ROWS = [["youtube", "YouTube", "subscribers"], ["facebook", "Facebook Page", "followers"], ["instagram", "Instagram", "followers"]];
+function renderSubs() {
+  const el = document.getElementById("subs"), hb = S.heartbeat.subscribers;
+  if (!el) return;
+  const c = hb?.info?.counts;
+  if (!c) { el.innerHTML = `<p class="muted">Not counted yet - the mini PC checks every 15 minutes.</p>`; return; }
+  const t = hb.info.today || {}, w = hb.info.week || {};
+  const chg = (v, label) => v == null ? "" : v > 0 ? `<span class="up">+${v} ${label}</span>` : "";
+  const rows = SUB_ROWS.filter(([k]) => c[k] != null).map(([k, name, noun]) =>
+    `<div class="subrow"><span class="n">${Number(c[k]).toLocaleString()}</span><span class="w"><b>${name}</b> <span class="muted">${noun}</span></span>${chg(t[k], "today")}${chg(w[k], "this week")}</div>`).join("");
+  const total = SUB_ROWS.reduce((a, [k]) => a + (c[k] || 0), 0);
+  el.innerHTML = rows + `<div class="muted" style="margin-top:6px">${total.toLocaleString()} in total · counted ${ago(hb.at)}. TikTok has no public count for us.</div>`;
 }
 function renderCredits() {
   const el = document.getElementById("credits");
@@ -1568,7 +1597,7 @@ function renderSchedule() {
     ${longformBlock(sc)}
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
-function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderAccounts(); renderScreens(); paintSeason(); }
+function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderSubs(); renderAccounts(); renderScreens(); paintSeason(); }
 
 // ---------- data ----------
 async function load() {
@@ -1615,7 +1644,7 @@ function subscribe() {
       if (p.new?.id === "upcoming") S.upcoming = p.new.data; else if (p.new?.data) S.schedule = p.new.data;
       renderSchedule(); renderScreens(); paintSeason();
     })
-    .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); renderAccounts(); syncMeeting(); } })
+    .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); renderAccounts(); renderSubs(); syncMeeting(); } })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "credits" }, p => { S.credits.push(p.new); renderCredits(); })
     .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, p => {
       if (p.eventType === "DELETE") S.tasks = S.tasks.filter(x => x.id !== p.old.id); else upsert(S.tasks, p.new, "id"); renderTasks(); })
@@ -1675,6 +1704,7 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   const alertsDemo = new URLSearchParams(location.search).get("demo") === "alerts";   // ?demo=alerts previews the warnings
   S.heartbeat = { scheduler: { at: new Date(Date.now() - (alertsDemo ? 45 : 3) * 60000).toISOString(), info: { disk_free_gb: 142.6 } },
                   listener: { at: new Date().toISOString(), info: {} },
+                  subscribers: { at: new Date(Date.now() - 6 * 60000).toISOString(), info: { counts: { youtube: 22, facebook: 8, instagram: 5 }, today: { youtube: 1, facebook: 0, instagram: 0 }, week: { youtube: 3, facebook: 2, instagram: 1 } } },
                   connections: { at: new Date(Date.now() - 20 * 60000).toISOString(), info: {
                     youtube: { ok: true, detail: "channel: Silent Hallelujah (demo)" },
                     facebook: alertsDemo ? { ok: false, detail: "Demo: Cannot call API for app on behalf of user" } : { ok: true, detail: "page: Silent Hallelujah (demo)" },
