@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-03 22:29">
+<meta name="build" content="2026-10-03 22:55">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -149,6 +149,14 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .meter div { height: 100%; background: var(--work); } .meter.amber div { background: var(--wait); } .meter.red div { background: var(--err); }
 .cr { margin-bottom: 3px; }
 .acct { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.subscr { position: absolute; background: #0b132b; border: 1px solid #c9a227; color: #fffdf5; font: 700 0.95cqw/1.2 var(--body);
+         display: grid; grid-template-columns: 1fr 1fr; align-content: center; gap: 0.15cqw 0.5cqw; padding: 0.2cqw 0.45cqw; cursor: help;
+         pointer-events: auto; z-index: 5; white-space: nowrap; }
+.subscr .c b { color: #f2c14e; } .subscr .c.off { opacity: .55; }
+.subscr .tip { display: none; position: absolute; left: 50%; top: 112%; transform: translateX(-50%); width: max-content; max-width: 36cqw;
+               background: #16162a; border: 1px solid #c9a227; border-radius: 3px; padding: 0.6cqw 0.9cqw; font: 500 1.1cqw/1.45 var(--body);
+               white-space: normal; z-index: 20; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+.subscr:hover .tip, .subscr:focus .tip { display: block; } .subscr .tip b { color: #f2c14e; }
 .subrow { display: flex; align-items: baseline; gap: 8px; padding: 5px 0; border-top: 1px solid var(--line); }
 .subrow:first-child { border-top: 0; } .subrow .n { font: 700 22px/1 var(--head, inherit); color: var(--gold); min-width: 3ch; }
 .subrow .w { flex: 1; font-size: 13px; } .subrow .up { color: var(--work); font-size: 12px; white-space: nowrap; }
@@ -1384,7 +1392,12 @@ function renderAccounts() {
       <div class="d">${r.ok ? esc(r.detail) : "BROKEN: " + esc(r.detail)}</div></div></div>`;
   }).join("") + `<div class="muted" style="margin-top:6px">Checked ${ago(c.at)}${old ? " - the hourly check is overdue" : ""}</div>`;
 }
-const SUB_ROWS = [["youtube", "YouTube", "subscribers"], ["facebook", "Facebook Page", "followers"], ["instagram", "Instagram", "followers"]];
+const SUB_ROWS = [["youtube", "YouTube", "subscribers"], ["facebook", "Facebook Page", "followers"], ["instagram", "Instagram", "followers"], ["tiktok", "TikTok", "followers"]];
+// when each platform started (shown on hover). Sources: YouTube = channel creation date from the YouTube API; the others = our board
+// (#13 Facebook Page created + Instagram linked 26 Sep 2026; first posts 27 Sep 2026). Exact TikTok/Instagram account-creation dates are not known to us.
+const SUB_SINCE = { youtube: "channel created 25 Sep 2026", facebook: "Page created 26 Sep 2026", instagram: "linked to the Page 26 Sep 2026",
+                    tiktok: "first post 27 Sep 2026" };
+const SUB_SHORT = { youtube: "YT", facebook: "FB", instagram: "IG", tiktok: "TT" };
 function renderSubs() {
   const el = document.getElementById("subs"), hb = S.heartbeat.subscribers;
   if (!el) return;
@@ -1392,10 +1405,23 @@ function renderSubs() {
   if (!c) { el.innerHTML = `<p class="muted">Not counted yet - the mini PC checks every 15 minutes.</p>`; return; }
   const t = hb.info.today || {}, w = hb.info.week || {};
   const chg = (v, label) => v == null ? "" : v > 0 ? `<span class="up">+${v} ${label}</span>` : "";
-  const rows = SUB_ROWS.filter(([k]) => c[k] != null).map(([k, name, noun]) =>
-    `<div class="subrow"><span class="n">${Number(c[k]).toLocaleString()}</span><span class="w"><b>${name}</b> <span class="muted">${noun}</span></span>${chg(t[k], "today")}${chg(w[k], "this week")}</div>`).join("");
+  const man = hb.info.manual || [];
+  const rows = SUB_ROWS.map(([k, name, noun]) =>
+    `<div class="subrow" title="${name} - ${SUB_SINCE[k]}"><span class="n">${c[k] != null ? Number(c[k]).toLocaleString() : "-"}</span><span class="w"><b>${name}</b> <span class="muted">${noun}${man.includes(k) ? " (typed in by hand)" : c[k] == null ? " (TikTok shares no count with our app)" : ""}</span></span>${chg(t[k], "today")}${chg(w[k], "this week")}</div>`).join("");
   const total = SUB_ROWS.reduce((a, [k]) => a + (c[k] || 0), 0);
-  el.innerHTML = rows + `<div class="muted" style="margin-top:6px">${total.toLocaleString()} in total · counted ${ago(hb.at)}. TikTok has no public count for us.</div>`;
+  el.innerHTML = rows + `<div class="muted" style="margin-top:6px">${total.toLocaleString()} in total · counted ${ago(hb.at)}. Hover a row for the start date.</div>`;
+  renderSubScreen();
+}
+const subEl = document.createElement("div");           // the Boss's office: a small wall screen with every platform's count; hover = start dates
+subEl.className = "subscr"; subEl.tabIndex = 0;
+Object.assign(subEl.style, { left: pct(356, W), top: pct(5, H), width: pct(43, W), height: pct(25, H) });
+overlay.append(subEl);
+function renderSubScreen() {
+  const hb = S.heartbeat.subscribers, c = hb?.info?.counts || {};
+  const cell = ([k]) => `<span class="c${c[k] == null ? " off" : ""}">${SUB_SHORT[k]} <b>${c[k] != null ? Number(c[k]).toLocaleString() : "-"}</b></span>`;
+  const tip = `<div class="tip"><b>Followers &amp; subscribers</b><br>${SUB_ROWS.map(([k, name]) => `${name}: <b>${c[k] != null ? Number(c[k]).toLocaleString() : "no count"}</b> <span class="muted">(${SUB_SINCE[k]})</span>`).join("<br>")}</div>`;
+  const html = SUB_ROWS.map(cell).join("") + tip;
+  if (subEl.innerHTML !== html) subEl.innerHTML = html;
 }
 function renderCredits() {
   const el = document.getElementById("credits");
@@ -1597,7 +1623,7 @@ function renderSchedule() {
     ${longformBlock(sc)}
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
-function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderSubs(); renderAccounts(); renderScreens(); paintSeason(); }
+function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderSubs(); renderSubScreen(); renderAccounts(); renderScreens(); paintSeason(); }
 
 // ---------- data ----------
 async function load() {
@@ -1704,7 +1730,7 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   const alertsDemo = new URLSearchParams(location.search).get("demo") === "alerts";   // ?demo=alerts previews the warnings
   S.heartbeat = { scheduler: { at: new Date(Date.now() - (alertsDemo ? 45 : 3) * 60000).toISOString(), info: { disk_free_gb: 142.6 } },
                   listener: { at: new Date().toISOString(), info: {} },
-                  subscribers: { at: new Date(Date.now() - 6 * 60000).toISOString(), info: { counts: { youtube: 22, facebook: 8, instagram: 5 }, today: { youtube: 1, facebook: 0, instagram: 0 }, week: { youtube: 3, facebook: 2, instagram: 1 } } },
+                  subscribers: { at: new Date(Date.now() - 6 * 60000).toISOString(), info: { counts: { youtube: 22, facebook: 8, instagram: 5, tiktok: null }, today: { youtube: 1, facebook: 0, instagram: 0 }, week: { youtube: 3, facebook: 2, instagram: 1 } } },
                   connections: { at: new Date(Date.now() - 20 * 60000).toISOString(), info: {
                     youtube: { ok: true, detail: "channel: Silent Hallelujah (demo)" },
                     facebook: alertsDemo ? { ok: false, detail: "Demo: Cannot call API for app on behalf of user" } : { ok: true, detail: "page: Silent Hallelujah (demo)" },
