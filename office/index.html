@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-03 23:19">
+<meta name="build" content="2026-10-04 12:50">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -495,7 +495,7 @@ function drawDecor(t) {
   px(401, 2, 24, 17, "#c9a227"); px(403, 4, 20, 13, "#1d3557"); disc(413, 10, 5, "#2b4a7a");
   px(412, 5, 2, 10, "#f2c14e"); px(409, 8, 8, 2, "#f2c14e");
   drawShelf(452, 22, 24, 56);
-  px(441, 112, 3, 9, "#5d4037"); px(470, 112, 3, 9, "#5d4037"); px(440, 121, 5, 2, "#3e2723"); px(469, 121, 5, 2, "#3e2723");   // legs of the subscribers sign
+  px(412, 48, 3, 9, "#5d4037"); px(443, 48, 3, 9, "#5d4037"); px(411, 57, 5, 2, "#3e2723"); px(442, 57, 5, 2, "#3e2723");   // legs of the subscribers sign
   px(352, 120, 96, 30, "#9d4b5a"); px(355, 123, 90, 24, "#b35c6b"); px(360, 128, 80, 14, "#c97b86");
   drawPlant(306, 118, true);
   drawOurLady(320, 24, t);                                                            // Boss's office, top-left corner
@@ -1415,7 +1415,7 @@ function renderSubs() {
 }
 const subEl = document.createElement("div");           // the Boss's office: a small wall screen with every platform's count; hover = start dates
 subEl.className = "subscr"; subEl.tabIndex = 0;
-Object.assign(subEl.style, { left: pct(436, W), top: pct(86, H), width: pct(42, W), height: pct(26, H) });   // a standing sign on the floor, right of the shelf (NOT on the wall: the windows are there)
+Object.assign(subEl.style, { left: pct(408, W), top: pct(22, H), width: pct(42, W), height: pct(26, H) });   // a standing sign on the floor under the logo frame, left of the shelf (the Boss marked this spot; NOT on the wall: the windows are there)
 overlay.append(subEl);
 function renderSubScreen() {
   const hb = S.heartbeat.subscribers, c = hb?.info?.counts || {};
