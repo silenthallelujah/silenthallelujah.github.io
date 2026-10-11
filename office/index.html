@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-04 12:50">
+<meta name="build" content="2026-10-11 08:48">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,6 +50,10 @@ main { max-width: 1480px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .appr.red { border-left-color: var(--err); } .appr.red .cd { color: var(--err); }
 .tag i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
 .tag.sel { border-color: var(--gold); }
+.hot { position: absolute; width: 3.1%; height: 9.6%; pointer-events: auto; cursor: help; z-index: 4; }   /* invisible hover zone over each figure */
+.scope { position: absolute; z-index: 30; width: max-content; max-width: 34cqw; background: #16162a; border: 1px solid #c9a227; border-radius: 4px;
+         padding: 0.7cqw 1cqw; color: #fffdf5; font: 500 1.15cqw/1.45 var(--body); box-shadow: 0 4px 14px rgba(0,0,0,.55); pointer-events: none; }
+.scope b { color: #f2c14e; } .scope .who { display: block; margin-bottom: 0.3cqw; }
 .bubble { position: absolute; transform: translate(-50%, -100%); max-width: 34%; background: #fffdf5; color: #1b1a24; font: 600 clamp(8px, 1.1vw, 11px)/1.25 var(--body);
           padding: 4px 7px; border-radius: 6px; border: 2px solid #1b1a24; animation: pop .25s ease-out; }
 .bubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; margin-left: -5px; border: 5px solid transparent; border-top-color: #1b1a24; border-bottom: 0; }
@@ -1254,6 +1258,33 @@ for (const id of Object.keys(CAST)) {
   const tg = document.createElement("div"); tg.className = "tag"; tg.onclick = () => select(id); overlay.append(tg); tags[id] = tg;
   const b = document.createElement("div"); b.className = "bubble hide"; overlay.append(b); bubbleEls[id] = b;
 }
+// Hover = the person's job scope (what they are responsible for). Keep in step with CLAUDE.md / swteam.py.
+const SCOPE = {
+  boss: "The Boss (you). Approves every finished video in Telegram (Approve / Request changes / Reject), decides what we make and when, taps Approve on software fixes and plans, and finishes the TikTok drafts and personal-profile posts by hand.",
+  planner: "Planner. Each morning reads the day's Mass readings and liturgical calendar and decides the video's format, theme, Scripture reference and mood. Follows the weekly grid in schedule.json and only overrides it for feasts and seasons. For Bible stories the next story comes from the series list.",
+  writer: "Writer. Writes the script (600-900 characters) in a calm Catholic voice, quoting only the Douay-Rheims. Also writes the Facebook companion texts, the Bible-story beats and picture descriptions, and the long-form psalm meditations. Fixes whatever Luke and Eddie send back.",
+  checker: "Scripture Checker. Verifies every quotation word for word against the Douay-Rheims, and checks psalm and mystery numbers, damaged source text, doubled words and that traditional prayers are complete. Sends a draft back to Wren until it is right.",
+  editor: "Editor. Reads the checked script as a listener would: faithful to Church teaching and the source, clear when heard, warm and reverent, a strong first line, nothing against platform rules. For Bible stories also reviews every picture description. Can ask Wren for up to two revisions.",
+  producer: "Producer (coordinator). Picks the background and music for the mood, coordinates the day's video between the team, and runs the run check (was today's video made? is the Bible story healthy?). Escalates failures, stuck agents and platform problems to the software team.",
+  narrator: "Narrator. Records the narration with the Typecast voice (paid, never retried automatically) and the spoken title, and produces the word-timed captions. Guards the credit balance and the 90-second cap.",
+  renderer: "Renderer. Builds the finished 1080x1920 video: background or story pictures, title card, logo, captions, music under the voice, fades, and the length cap. Also builds the Facebook feed card and Story.",
+  clerk: "Approval Clerk. Sends the preview to your Telegram with the Approve / Request changes / Reject buttons, waits for your tap, records it, and nudges you about anything still waiting.",
+  social: "Social Manager. Publishes approved videos: YouTube and Facebook scheduled, Instagram at go-live, the TikTok draft into your inbox (evening drafts at go-live). Posts the Facebook feed card and Story, and reads comments and drafts replies for you to approve.",
+  strategist: "Growth Strategist. Collects public view and follower numbers once a day and, every Sunday, proposes three growth experiments. Never touches the pipeline: ideas go to you, then the software team.",
+  lead: "Lead Engineer. When a run fails, an agent gets stuck or you send /feature, reads the logs and code and decides: fix, re-run, owner action, or nothing. Plans the change and reviews the diff when Devin or Tess are stuck.",
+  developer: "Developer. Implements Joseph's plan in an isolated git branch and worktree. Never touches master, secrets or paid services; nothing reaches master without your tap.",
+  tester: "Tester. Runs free checks only on Devin's change: compile, bash -n, diff review and small logic tests, up to two rounds. Never runs paid steps.",
+  deployer: "Deployer. After you approve a fix, merges it to master, pushes to GitHub, publishes changed office-page files to GitHub Pages, and re-runs the failed step (only the missing steps run). Waits if the working tree has uncommitted edits to the same files.",
+};
+let HOVER = null;
+const hots = {}, scopes = {};
+for (const id of Object.keys(CAST)) {
+  const h = document.createElement("div"); h.className = "hot";
+  h.onmouseenter = () => { HOVER = id; }; h.onmouseleave = () => { if (HOVER === id) HOVER = null; };
+  h.onclick = () => select(id); overlay.append(h); hots[id] = h;
+  const s = document.createElement("div"); s.className = "scope hide"; overlay.append(s); scopes[id] = s;
+  const tg = tags[id]; tg.onmouseenter = () => { HOVER = id; }; tg.onmouseleave = () => { if (HOVER === id) HOVER = null; };
+}
 const BUBBLE_MS = 10000;
 function placeOverlay(t) {
   const shown = new Set([...S.bubbles].filter(([, m]) => Date.now() - m.at < BUBBLE_MS)
@@ -1269,6 +1300,17 @@ function placeOverlay(t) {
     tg.style.left = pct(p.x + 9 + (role ? TAG_DX[id] || 0 : 0), W); tg.style.top = meeting ? pct(p.meet.below ? p.y + 33 + (MEET.get(id)?.lift || 0) : p.y - 11 - (MEET.get(id)?.lift || 0), H) : pct(p.y + (id === "boss" ? 39 : 41), H);
     tg.style.opacity = "";
     tg.classList.toggle("sel", S.selected === id);
+    const ht = hots[id], sc = scopes[id];                                    // hover zone over the figure + the job-scope popup
+    ht.style.left = pct(p.x - 1, W); ht.style.top = pct(p.y - 2, H);
+    if (HOVER === id && SCOPE[id]) {
+      const shtml = `<b class="who">${esc(full)} · ${esc(a?.role || "")}</b>${esc(SCOPE[id])}`;
+      if (sc.innerHTML !== shtml) sc.innerHTML = shtml;
+      sc.classList.remove("hide");
+      const below = p.y < 150, half = sc.offsetWidth / 2 + 4, fw = overlay.clientWidth;
+      sc.style.left = `${Math.min(Math.max((p.x + 9) / W * fw, half), fw - half)}px`;
+      sc.style.top = pct(below ? p.y + 58 : p.y - 3, H);
+      sc.style.transform = below ? "translate(-50%, 0)" : "translate(-50%, -100%)";
+    } else sc.classList.add("hide");
     const b = bubbleEls[id], msg = S.bubbles.get(id);
     if (msg && shown.has(id)) {
       if (b.textContent !== msg.text) b.textContent = msg.text;
