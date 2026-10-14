@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-14 23:08">
+<meta name="build" content="2026-10-14 23:09">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1320,7 +1320,8 @@ function renderCalModal() {
     const pl = s.run?.platforms || {}, PF = { youtube: "YouTube", facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok", facebook_feed: "FB card", facebook_story: "FB story" };
     const chips = Object.entries(pl).map(([p, v]) => {
       const lab = `${PF[p] || p}: ${PF_LABEL?.[v.state] || v.state}`;
-      return v.url ? `<a class="pf pf-${esc(v.state)}" href="${esc(v.url)}" target="_blank" rel="noopener">${esc(lab)}</a>` : `<span class="pf pf-${esc(v.state)}">${esc(lab)}</span>`;
+      const href = safeUrl(v.url);   // https only, like every other link on this page (a javascript: URL must never reach an href)
+      return href ? `<a class="pf pf-${esc(v.state)}" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(lab)}</a>` : `<span class="pf pf-${esc(v.state)}">${esc(lab)}</span>`;
     }).join(" ");
     const vs = s.v ? `<span class="muted">YouTube: ${s.v.views ?? "?"} views · ${s.v.likes ?? 0} likes · ${s.v.comments ?? 0} comments</span>` : "";
     return `<div class="dsl"><div class="dh">${h} <span class="chip k-${s.kind}">${KIND_LABEL[s.kind]}</span> <b>${esc(s.label)}</b>${s.swapped ? ` <span class="muted">(changed for the day)</span>` : ""}</div>
