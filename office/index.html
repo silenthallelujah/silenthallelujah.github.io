@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-11 08:48">
+<meta name="build" content="2026-10-14 23:08">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -54,6 +54,45 @@ main { max-width: 1480px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .scope { position: absolute; z-index: 30; width: max-content; max-width: 34cqw; background: #16162a; border: 1px solid #c9a227; border-radius: 4px;
          padding: 0.7cqw 1cqw; color: #fffdf5; font: 500 1.15cqw/1.45 var(--body); box-shadow: 0 4px 14px rgba(0,0,0,.55); pointer-events: none; }
 .scope b { color: #f2c14e; } .scope .who { display: block; margin-bottom: 0.3cqw; }
+/* wall calendar (Boss's office) + monthly plan modal */
+.wallcal { position: absolute; pointer-events: auto; cursor: pointer; z-index: 5; padding: 0; border: 1px solid #2a1d12; border-radius: 2px;
+           background: #f6f1e4; color: #1d1a16; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 1px 0 rgba(0,0,0,.5);
+           font-family: var(--pixel, var(--body)); }
+.wallcal b { display: block; background: #c62f3b; color: #fff; font: 700 0.95cqw/1 var(--body); letter-spacing: .08em; padding: 0.2cqw 0 0.18cqw; text-align: center; }
+.wallcal span { flex: 1; display: flex; align-items: center; justify-content: center; font: 800 2.05cqw/1 var(--body); }
+.wallcal:hover, .wallcal:focus-visible { outline: 2px solid var(--gold); transform: translateY(-1px); }
+.calmodal { position: fixed; inset: 0; z-index: 100; background: rgba(5,5,12,.72); display: flex; align-items: flex-start; justify-content: center;
+            padding: 3vh 12px; overflow: auto; }
+.calbox { background: #14142a; border: 2px solid var(--gold); border-radius: 8px; width: min(1040px, 100%); padding: 12px 14px 14px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.calhead { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; } .calhead h2 { margin: 0; font-size: 18px; min-width: 9ch; text-align: center; color: #fffdf5; }
+.calhead .grow { flex: 1; } .calhead button { min-width: 34px; }
+.calsum { margin-bottom: 8px; font-size: 12px; } .chip { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 600; border: 1px solid transparent; }
+.calgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.calgrid .wdh { text-align: center; font-size: 11px; letter-spacing: .08em; color: var(--muted); padding: 2px 0; text-transform: uppercase; }
+.cc { text-align: left; border: 1px solid var(--line); border-radius: 5px; background: #1b1b36; color: var(--ink); padding: 4px 5px; min-height: 76px;
+      cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 3px; }
+.cc.empty { border: 0; background: none; cursor: default; } .cc.past { opacity: .82; }
+.cc.today { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; } .cc.sel { outline: 2px solid #8ab4ff; }
+.cc .n { font-weight: 700; font-size: 13px; display: flex; gap: 5px; align-items: center; } .cc .fs { color: #f2c14e; font-size: 11px; } .cc .lf { font-size: 11px; }
+.cc .ln { display: flex; align-items: center; gap: 4px; font-size: 11px; line-height: 1.25; border-left: 3px solid var(--line); padding-left: 4px; min-width: 0; }
+.cc .ln i { font-style: normal; } .cc .ln .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc .ln .vw { font-size: 10.5px; color: #ffe08a; } .cc .ln .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; display: none; }
+.cc .ln.swap .t { font-style: italic; }
+.k-live { border-left-color: #52d88a !important; } .chip.k-live { background: #1f5a3a; color: #bff3d4; }
+.k-sched { border-left-color: #4f9cff !important; } .chip.k-sched { background: #1d3f73; color: #c9defc; }
+.k-wait { border-left-color: #f2c14e !important; } .chip.k-wait { background: #6a5214; color: #ffe9a8; }
+.k-make { border-left-color: #b48cff !important; } .chip.k-make { background: #43306e; color: #e1d2ff; }
+.k-plan { border-left-color: #5b5f78 !important; } .chip.k-plan { background: #2a2d44; color: #b9bdd6; }
+.k-bad { border-left-color: #ff5c5c !important; } .chip.k-bad { background: #6a2020; color: #ffd0d0; }
+.k-none { border-left-color: transparent !important; opacity: .45; } .chip.k-none { background: #22243a; color: #8d92ad; }
+.k-miss { border-left-color: #8d5a5a !important; } .chip.k-miss { background: #3a2626; color: #e0b9b9; }
+.caldetail { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
+.caldetail h3 { margin: 0 0 6px; font-size: 14px; color: var(--gold); } .dsl { margin-bottom: 8px; font-size: 13px; } .dsl .dt { font-weight: 600; margin: 2px 0; }
+.dsl .dp { margin: 4px 0; display: flex; flex-wrap: wrap; gap: 4px; } .upl { margin: 0; padding-left: 16px; font-size: 12.5px; } .upl li { margin-bottom: 3px; }
+@media (max-width: 700px) {
+  .cc { min-height: 54px; padding: 3px; } .cc .ln .t { display: none; } .cc .ln .dot { display: inline-block; } .cc .ln .vw { font-size: 9.5px; }
+  .caldetail { grid-template-columns: 1fr; } .calhead h2 { font-size: 15px; }
+}
 .bubble { position: absolute; transform: translate(-50%, -100%); max-width: 34%; background: #fffdf5; color: #1b1a24; font: 600 clamp(8px, 1.1vw, 11px)/1.25 var(--body);
           padding: 4px 7px; border-radius: 6px; border: 2px solid #1b1a24; animation: pop .25s ease-out; }
 .bubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; margin-left: -5px; border: 5px solid transparent; border-top-color: #1b1a24; border-bottom: 0; }
@@ -222,7 +261,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
       <span id="pc" class="pcpill hide"><i></i><span></span></span>
       <span id="season" class="seasonpill"></span> <span id="wx" class="wxpill"></span></div>
   </div>
-  <div><div id="clock"></div><button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
+  <div><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan">📅</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
 </header>
 
 <div id="alerts" class="hide"></div>
@@ -1221,6 +1260,105 @@ tvEl.className = "tv"; wbEl.className = "wb";
 Object.assign(tvEl.style, { left: pct(366, W), top: pct(165, H), width: pct(106, W), height: pct(14, H) });
 Object.assign(wbEl.style, { left: pct(226, W), top: pct(3, H), width: pct(62, W), height: pct(15, H) });
 overlay.append(tvEl, wbEl);
+
+// ---------- wall calendar (Boss's office) + monthly plan modal ----------
+const CAL_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const CAL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const STAGE_KIND = { published: "live", scheduled: "sched", approved: "sched", awaiting_approval: "wait", rejected: "bad", failed: "bad",
+                     planning: "make", writing: "make", revising: "make", narrating: "make", rendering: "make" };
+const KIND_LABEL = { live: "Live", sched: "Scheduled", wait: "Needs you", bad: "Rejected", make: "In the works", plan: "Planned", miss: "Not made", none: "No record" };
+const calEl = document.createElement("button");
+calEl.className = "wallcal"; calEl.type = "button"; calEl.title = "Open the monthly video plan";
+Object.assign(calEl.style, { left: pct(306, W), top: pct(3, H), width: pct(26, W), height: pct(21, H) });
+overlay.append(calEl);
+const calState = { y: 0, m: 0, sel: null, open: false };
+function calToday() { const [y, m, d] = manilaDay().split("-").map(Number); return { y, m: m - 1, d }; }
+function renderCalEl() {
+  const t = calToday(), html = `<b>${CAL_MONTHS[t.m].slice(0, 3).toUpperCase()}</b><span>${t.d}</span>`;
+  if (calEl.innerHTML !== html) calEl.innerHTML = html;
+}
+const fmtViews = n => n == null ? "" : n >= 10000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+function calDay(key, wdName, slot, today) {
+  // One slot of one day: {fmt, label, kind, title, run, views...} from the run row when it exists, else the plan.
+  const F = S.schedule?.formats || {}, run = S.runs.find(r => r.day === key);
+  const upc = (S.upcoming?.days || []).find(u => u.date === key.slice(0, 10));
+  const planned = (upc && upc[slot]) || S.schedule?.grid?.[slot]?.[wdName];
+  const fmt = run?.format || planned;
+  const first = S.runs.reduce((a, r) => /^20\d\d-\d\d-\d\d/.test(r.day) && r.day.slice(0, 10) < a ? r.day.slice(0, 10) : a, "9999-12-31");   // before the first video: no data, not "missed"
+  let kind = run ? (STAGE_KIND[run.stage] || "make") : (key.slice(0, 10) < first ? "none" : key.slice(0, 10) < today ? "miss" : "plan");
+  const v = S.vstats?.[key];
+  return { key, slot, fmt, label: F[fmt]?.label || (fmt ? fmt.replace(/_/g, " ").replace(/\w/g, c => c.toUpperCase()) : "-"), kind, title: run?.title || "", run, v, swapped: !!(run?.format && planned && run.format !== planned) };
+}
+function renderCalModal() {
+  let m = document.getElementById("calmodal");
+  if (!m) {
+    m = document.createElement("div"); m.id = "calmodal"; m.className = "calmodal hide";
+    m.addEventListener("click", e => { if (e.target === m) closeCal(); });
+    document.body.append(m);
+  }
+  if (!calState.open) { m.classList.add("hide"); return; }
+  const { y, m: mo } = calState, today = manilaDay(), first = new Date(Date.UTC(y, mo, 1)), nDays = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+  const lead = (first.getUTCDay() + 6) % 7;                       // Monday first
+  const pad = n => String(n).padStart(2, "0"), dkey = d => `${y}-${pad(mo + 1)}-${pad(d)}`;
+  const counts = { live: 0, sched: 0, wait: 0, make: 0, plan: 0, bad: 0, miss: 0 };
+  let cells = "";
+  for (let i = 0; i < lead; i++) cells += `<div class="cc empty"></div>`;
+  for (let d = 1; d <= nDays; d++) {
+    const k = dkey(d), wd = CAL_DAYS[(lead + d - 1) % 7];
+    const am = calDay(k, wd, "morning", today), pm = calDay(k + "-pm", wd, "evening", today);
+    [am, pm].forEach(s => { if (counts[s.kind] != null && (S.schedule?.evening_live !== false || s.slot === "morning")) counts[s.kind]++; });
+    const ln = (s, ico) => `<div class="ln k-${s.kind}${s.swapped ? " swap" : ""}" title="${esc(`${s.label}${s.title ? ": " + s.title : ""} · ${KIND_LABEL[s.kind]}`)}">
+        <i>${ico}</i><span class="t">${esc(s.label)}</span>${s.v?.views != null ? `<b class="vw">${fmtViews(s.v.views)}</b>` : `<em class="dot"></em>`}</div>`;
+    const u = (S.upcoming?.days || []).find(x => x.date === k), feast = u && (u.feast || (u.liturgical && !/ordinary/i.test(u.liturgical) ? u.liturgical : ""));
+    const lf = wd === "Sat" && S.schedule?.longform?.enabled ? `<span class="lf" title="Weekly long-form premiere: ${esc(S.schedule.longform.series || "Pray the Psalms")}">🎬</span>` : "";
+    cells += `<button type="button" class="cc${k === today ? " today" : ""}${calState.sel === k ? " sel" : ""}${k < today ? " past" : ""}" data-d="${k}">
+      <div class="n">${d}${feast ? `<span class="fs" title="${esc(feast)}">✝</span>` : ""}${lf}</div>${ln(am, "☀")}${ln(pm, "☾")}</button>`;
+  }
+  const sel = calState.sel && calState.sel.startsWith(`${y}-${pad(mo + 1)}`) ? calState.sel : (today.startsWith(`${y}-${pad(mo + 1)}`) ? today : dkey(1));
+  const selWd = CAL_DAYS[(lead + Number(sel.slice(8)) - 1) % 7];
+  const detail = [["☀ Morning", calDay(sel, selWd, "morning", today)], ["☾ Evening", calDay(sel + "-pm", selWd, "evening", today)]].map(([h, s]) => {
+    const pl = s.run?.platforms || {}, PF = { youtube: "YouTube", facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok", facebook_feed: "FB card", facebook_story: "FB story" };
+    const chips = Object.entries(pl).map(([p, v]) => {
+      const lab = `${PF[p] || p}: ${PF_LABEL?.[v.state] || v.state}`;
+      return v.url ? `<a class="pf pf-${esc(v.state)}" href="${esc(v.url)}" target="_blank" rel="noopener">${esc(lab)}</a>` : `<span class="pf pf-${esc(v.state)}">${esc(lab)}</span>`;
+    }).join(" ");
+    const vs = s.v ? `<span class="muted">YouTube: ${s.v.views ?? "?"} views · ${s.v.likes ?? 0} likes · ${s.v.comments ?? 0} comments</span>` : "";
+    return `<div class="dsl"><div class="dh">${h} <span class="chip k-${s.kind}">${KIND_LABEL[s.kind]}</span> <b>${esc(s.label)}</b>${s.swapped ? ` <span class="muted">(changed for the day)</span>` : ""}</div>
+      ${s.title ? `<div class="dt">${esc(s.title)}</div>` : ""}${chips ? `<div class="dp">${chips}</div>` : ""}${vs ? `<div>${vs}</div>` : ""}</div>`;
+  }).join("");
+  const up = (S.upcoming?.days || []).filter(u => u.date >= today).slice(0, 7).map(u => {
+    const bits = [u.feast, u.liturgical && !/ordinary/i.test(u.liturgical) ? u.liturgical : "", (u.saints || []).join(", ")].filter(Boolean);
+    return `<li><b>${esc(u.date.slice(5))}</b> ${bits.length ? esc([...new Set(bits)].join(" · ")) : '<span class="muted">Ordinary Time</span>'}${u.may_change ? ' <span class="muted">· the morning type may change</span>' : ""}</li>`;
+  }).join("");
+  const sum = ["live", "sched", "wait", "make", "plan", "bad", "miss"].filter(k => counts[k]).map(k => `<span class="chip k-${k}">${counts[k]} ${KIND_LABEL[k].toLowerCase()}</span>`).join(" ");
+  const html = `<div class="calbox" role="dialog" aria-label="Monthly video plan">
+    <div class="calhead"><button class="ghost" data-nav="-1" aria-label="Previous month">‹</button>
+      <h2>${CAL_MONTHS[mo]} ${y}</h2><button class="ghost" data-nav="1" aria-label="Next month">›</button>
+      <button class="ghost" data-nav="0" title="Back to this month">Today</button><span class="grow"></span>
+      <button class="ghost" id="calclose" aria-label="Close">✕</button></div>
+    <div class="calsum">${sum}</div>
+    <div class="calgrid">${CAL_DAYS.map(d => `<div class="wdh">${d}</div>`).join("")}${cells}</div>
+    <div class="caldetail"><div class="dd"><h3>${esc(CAL_DAYS[(lead + Number(sel.slice(8)) - 1) % 7])}, ${CAL_MONTHS[mo]} ${Number(sel.slice(8))}</h3>${detail}</div>
+      <div class="dd"><h3>Coming up</h3>${up ? `<ul class="upl">${up}</ul>` : '<span class="muted">Nothing listed yet.</span>'}
+      <div class="muted" style="font-size:11.5px;margin-top:6px">☀ morning · ☾ evening · number = YouTube views · ✝ feast or saint day · 🎬 weekly long-form premiere</div></div></div>
+  </div>`;
+  if (m.innerHTML !== html) m.innerHTML = html;
+  m.classList.remove("hide");
+  m.querySelectorAll("[data-d]").forEach(b => b.onclick = () => { calState.sel = b.dataset.d; renderCalModal(); });
+  m.querySelectorAll("[data-nav]").forEach(b => b.onclick = () => {
+    const n = Number(b.dataset.nav);
+    if (n === 0) { const t = calToday(); calState.y = t.y; calState.m = t.m; calState.sel = manilaDay(); }
+    else { const d = new Date(Date.UTC(calState.y, calState.m + n, 1)); calState.y = d.getUTCFullYear(); calState.m = d.getUTCMonth(); calState.sel = null; }
+    renderCalModal();
+  });
+  m.querySelector("#calclose").onclick = closeCal;
+}
+function openCal() { const t = calToday(); Object.assign(calState, { y: t.y, m: t.m, sel: manilaDay(), open: true }); renderCalModal(); }
+function closeCal() { calState.open = false; renderCalModal(); calEl.focus(); }
+calEl.onclick = openCal;
+document.getElementById("calbtn").onclick = openCal;
+addEventListener("keydown", e => { if (e.key === "Escape" && calState.open) closeCal(); });
+setInterval(renderCalEl, 60000);
 [["Our Lady", 332, 13], ["☕ Coffee", 259, 24], ["💧 Water", 287, 20]].forEach(([text, x, y]) => {   // object labels
   const d = document.createElement("div"); d.className = "lbl"; d.textContent = text;
   d.style.left = pct(x, W); d.style.top = pct(y, H); overlay.append(d);
@@ -1666,13 +1804,13 @@ function renderSchedule() {
     ${longformBlock(sc)}
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
-function renderAll() { renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderSubs(); renderSubScreen(); renderAccounts(); renderScreens(); paintSeason(); }
+function renderAll() { renderCalEl(); if (calState.open) renderCalModal(); renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderSubs(); renderSubScreen(); renderAccounts(); renderScreens(); paintSeason(); }
 
 // ---------- data ----------
 async function load() {
   const [a, e, r, t, sc, hb, cr] = await Promise.all([
     sb.from("agents").select("*"), sb.from("events").select("*").order("at", { ascending: false }).limit(60),
-    sb.from("runs").select("*").order("day", { ascending: false }).limit(30), sb.from("tasks").select("*"),
+    sb.from("runs").select("*").order("day", { ascending: false }).limit(130), sb.from("tasks").select("*"),
     sb.from("schedule").select("id,data"), sb.from("heartbeat").select("*"),
     sb.from("credits").select("*").gte("at", new Date(Date.now() - 45 * 86400000).toISOString()).order("at").limit(2000),
   ]);
@@ -1683,6 +1821,11 @@ async function load() {
   S.agents = new Map(a.data.map(x => [x.id, x])); S.events = e.data; S.runs = r.data; S.tasks = t.data;
   S.schedule = sc.data.find(x => x.id === "current")?.data || null;
   S.upcoming = sc.data.find(x => x.id === "upcoming")?.data || null;
+  try {                                  // latest YouTube numbers per video for the monthly calendar (never fatal)
+    const st = await sb.from("stats").select("key,at,metrics").eq("platform", "youtube").neq("key", "_channel")
+      .gte("at", new Date(Date.now() - 45 * 86400000).toISOString()).order("at", { ascending: false }).limit(1500);
+    if (!st.error) { S.vstats = {}; for (const r of st.data) if (!(r.key in S.vstats)) S.vstats[r.key] = r.metrics; }
+  } catch (e) { /* the calendar just shows no view counts */ }
   renderAll();
 }
 let channel;
@@ -1762,6 +1905,13 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   const now = () => new Date().toISOString();
   Object.entries(names).forEach(([id, [name, role]]) => S.agents.set(id, { id, name, role, status: "idle", activity: "Demo", updated_at: now() }));
   S.runs = [{ day: manilaDay(), title: "Demo: Singing Praise Before the Angels", format: "psalm", stage: "planning", links: {} }];
+  S.vstats = {};
+  for (let i = 1; i <= 9; i++) {                                   // a few made-up past days for the monthly calendar preview
+    const d = new Date(Date.now() - i * 86400000 - 8 * 3600000).toISOString().slice(0, 10), F = ["gospel", "prayer", "psalm", "daily_bread", "marian"];
+    S.runs.push({ day: d, title: `Demo morning video ${i}`, format: F[i % 5], stage: "published", platforms: { youtube: { state: "posted", url: "#" }, tiktok: { state: "draft", url: null } }, links: {} });
+    S.runs.push({ day: d + "-pm", title: `Demo evening video ${i}`, format: i % 7 === 0 ? "bible_story" : "saint", stage: i === 4 ? "rejected" : "published", platforms: {}, links: {} });
+    S.vstats[d] = { views: 40 + i * 37, likes: i * 3, comments: i % 3 }; S.vstats[d + "-pm"] = { views: 12 + i * 21, likes: i, comments: 0 };
+  }
   S.tasks = [{ id: "d1", num: 1, title: "Demo task waiting on you", detail: "Example only.", area: "Publishing", owner: "You", status: "waiting", sort: 1 },
              { id: "d2", num: 2, title: "Demo task for Claude", detail: "Example only.", area: "Visuals", owner: "Claude", status: "doing", sort: 1 },
              ...Array.from({ length: 11 }, (_, k) => ({ id: "d" + (k + 3), num: k + 3, title: `Demo finished task ${k + 3}`, detail: "Example only.",
