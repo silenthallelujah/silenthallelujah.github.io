@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-14 23:09">
+<meta name="build" content="2026-10-14 23:20">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -539,6 +539,7 @@ function drawDecor(t) {
   px(412, 5, 2, 10, "#f2c14e"); px(409, 8, 8, 2, "#f2c14e");
   drawShelf(452, 22, 24, 56);
   px(412, 48, 3, 9, "#5d4037"); px(443, 48, 3, 9, "#5d4037"); px(411, 57, 5, 2, "#3e2723"); px(442, 57, 5, 2, "#3e2723");   // legs of the subscribers sign
+  px(381, 48, 3, 9, "#5d4037"); px(394, 48, 3, 9, "#5d4037"); px(380, 57, 5, 2, "#3e2723"); px(393, 57, 5, 2, "#3e2723");   // legs of the wall calendar (beside the counter)
   px(352, 120, 96, 30, "#9d4b5a"); px(355, 123, 90, 24, "#b35c6b"); px(360, 128, 80, 14, "#c97b86");
   drawPlant(306, 118, true);
   drawOurLady(320, 24, t);                                                            // Boss's office, top-left corner
@@ -1269,7 +1270,7 @@ const STAGE_KIND = { published: "live", scheduled: "sched", approved: "sched", a
 const KIND_LABEL = { live: "Live", sched: "Scheduled", wait: "Needs you", bad: "Rejected", make: "In the works", plan: "Planned", miss: "Not made", none: "No record" };
 const calEl = document.createElement("button");
 calEl.className = "wallcal"; calEl.type = "button"; calEl.title = "Open the monthly video plan";
-Object.assign(calEl.style, { left: pct(306, W), top: pct(3, H), width: pct(26, W), height: pct(21, H) });
+Object.assign(calEl.style, { left: pct(376, W), top: pct(22, H), width: pct(26, W), height: pct(26, H) });   // a standing calendar on the floor, beside the subscribers counter (the Boss asked for this spot)
 overlay.append(calEl);
 const calState = { y: 0, m: 0, sel: null, open: false };
 function calToday() { const [y, m, d] = manilaDay().split("-").map(Number); return { y, m: m - 1, d }; }
