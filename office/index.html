@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-14 23:20">
+<meta name="build" content="2026-10-15 09:13">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1725,6 +1725,11 @@ function renderHealth() {
     : sch > HB_STALE_MS ? `Mini PC: silent for ${span(sch)}` : `Mini PC online · checked in ${span(sch)} ago`;
   pc.title = `Scheduler: ${hb("scheduler") ? ago(hb("scheduler").at) : "never"} · Telegram listener: ${hb("listener") ? ago(hb("listener").at) : "never"}`
     + (hb("scheduler")?.info?.disk_free_gb != null ? ` · ${hb("scheduler").info.disk_free_gb} GB free` : "");
+  const autofix = hb("listener")?.info?.autofix;   // #388: display only - switched with /autofix in Telegram, never here
+  if (autofix != null) {
+    pc.lastElementChild.textContent += ` · auto-fix ${autofix ? "ON" : "off"}`;
+    pc.title += " · Auto-fix: bug fixes are merged without a tap (/autofix in Telegram)";
+  }
   if (sch > HB_STALE_MS) alerts.push(["", `<b>The mini PC hasn't checked in for ${sch === Infinity ? "a long time" : span(sch)}.</b>
     It may be off, asleep, restarting or offline - videos won't be made or posted until it's back.`]);
   if (lis > HB_STALE_MS && sch <= HB_STALE_MS) alerts.push(["warn", `<b>The Telegram listener isn't responding</b> (last seen
