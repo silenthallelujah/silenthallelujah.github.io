@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-15 09:13">
+<meta name="build" content="2026-10-16 18:34">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1325,7 +1325,7 @@ function renderCalModal() {
       return href ? `<a class="pf pf-${esc(v.state)}" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(lab)}</a>` : `<span class="pf pf-${esc(v.state)}">${esc(lab)}</span>`;
     }).join(" ");
     const vs = s.v ? `<span class="muted">YouTube: ${s.v.views ?? "?"} views · ${s.v.likes ?? 0} likes · ${s.v.comments ?? 0} comments</span>` : "";
-    return `<div class="dsl"><div class="dh">${h} <span class="chip k-${s.kind}">${KIND_LABEL[s.kind]}</span> <b>${esc(s.label)}</b>${s.swapped ? ` <span class="muted">(changed for the day)</span>` : ""}</div>
+    return `<div class="dsl"><div class="dh">${h} <span class="chip k-${s.kind}">${KIND_LABEL[s.kind]}</span> <b>${esc(s.label)}</b> <span class="muted">${esc((liveLabel(s.key).split(" · ")[1]) || "")}</span>${s.swapped ? ` <span class="muted">(changed for the day)</span>` : ""}</div>
       ${s.title ? `<div class="dt">${esc(s.title)}</div>` : ""}${chips ? `<div class="dp">${chips}</div>` : ""}${vs ? `<div>${vs}</div>` : ""}</div>`;
   }).join("");
   const up = (S.upcoming?.days || []).filter(u => u.date >= today).slice(0, 7).map(u => {
@@ -1550,14 +1550,21 @@ function platformChips(r) {                     // per-platform state (from publ
 }
 function runDate(day) {                          // "2026-10-02" -> MM-DD over AM; "2026-10-02-pm" -> PM; "lf-22-20261002" -> long-form
   let m = /^(\d{4})-(\d\d)-(\d\d)(-pm)?$/.exec(day);
-  if (m) return `${m[2]}-${m[3]}<br><span class="snote">${m[4] ? "PM" : "AM"}</span>`;
+  if (m) return `${m[2]}-${m[3]}<br><span class="snote">${m[4] ? "☾" : "☀"}</span>`;
   m = /^lf-\d+-(\d{4})(\d\d)(\d\d)$/.exec(day);
   if (m) return `${m[2]}-${m[3]}<br><span class="snote">Long-form</span>`;
   return esc(day.slice(5));
 }
+function liveLabel(day) {                        // "2026-10-16-pm" -> "Evening · live 6:00 PM ET (6:00 AM PHT, 10-17)": the key date is the US-Eastern date
+  const k = day.replace(/^test-/, ""), evening = k.endsWith("-pm"), key = evening ? k.slice(0, -3) : k;
+  if (!/^\d{4}-\d\d-\d\d$/.test(key)) return "";
+  const et = (S.schedule?.go_live_et || { morning: "06:00", evening: "18:00" })[evening ? "evening" : "morning"], [h, m] = et.split(":").map(Number);
+  const ms = goLiveMs(day), pd = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date(ms));
+  return `${evening ? "☾ Evening" : "☀ Morning"} · live ${clock12(h, m)} ET (${phtClock(ms)}${pd !== key ? ", " + pd.slice(5) : ""})`;
+}
 function renderRuns() {
   document.getElementById("runs").innerHTML = S.runs.filter(r => !/^test-/.test(r.day)).slice(0, 10).map(r => `<tr><td class="muted">${runDate(r.day)}</td>
-    <td><b>${esc(r.title || "-")}</b><br><span class="badge">${esc(r.format || "")}</span><span class="badge">${esc(r.stage)}</span>
+    <td><b>${esc(r.title || "-")}</b>${liveLabel(r.day) ? `<br><span class="snote">${esc(liveLabel(r.day))}</span>` : ""}<br><span class="badge">${esc(r.format || "")}</span><span class="badge">${esc(r.stage)}</span>
     <div class="pfs">${platformChips(r)}</div></td></tr>`).join("");
 }
 const ACCOUNTS = { youtube: "YouTube", facebook: "Facebook Page", instagram: "Instagram", typecast: "Typecast", telegram: "Telegram bot" };
