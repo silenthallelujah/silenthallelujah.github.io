@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-16 18:46">
+<meta name="build" content="2026-10-16 19:13">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -354,7 +354,7 @@ const CAST = {
   planner:  { x: 33,  y: 57,  skin: "#f1c27d", hair: "#6b3e26", shirt: "#4f8cff", prop: "calendar", style: "short", lanyard: true },
   writer:   { x: 93,  y: 57,  skin: "#e0ac69", hair: "#1f1a17", shirt: "#e76f51", prop: "papers", style: "long", scarf: "#f4d35e" },
   checker:  { x: 153, y: 57,  skin: "#f5d0a9", hair: "#8d6e63", shirt: "#6d4c41", prop: "bible", style: "tonsure", habit: true },
-  editor:   { x: 213, y: 57,  skin: "#c68642", hair: "#2b2b2b", shirt: "#2a9d8f", prop: "redpen", style: "short", glasses: true },
+  editor:   { x: 213, y: 57,  skin: "#c68642", hair: "#2b2b2b", shirt: "#2a9d8f", prop: "redpen", style: "short", glasses: true, pen: "#c1121f" },
   producer: { x: 123, y: 108, skin: "#8d5524", hair: "#111", shirt: "#9b5de5", prop: "clipboard", style: "bun", blazer: "#6a3fb5" },
   boss:     { x: 384, y: 70,  skin: "#e0ac69", hair: "#2b2b2b", shirt: "#f2f2f2", prop: "boss", style: "side", tie: "#c1121f", blazer: "#2b2d42" },
   narrator: { x: 45,  y: 210, skin: "#f1c27d", hair: "#b5651d", shirt: "#8a5a44", prop: "mic", style: "short", phones: true, beard: true, plaid: "#6b3f2e" },
@@ -581,11 +581,11 @@ function drawDecor(t) {
   drawPlant(612, 384, true);
 }
 function drawDesk(x, y, prop, status, t) {
-  const on = status === "working", flick = on && ((t >> 7) & 1);
+  const on = status === "working" || status === "standby", flick = status === "working" && ((t >> 7) & 1);
   px(x - 6, y + 18, 32, 4, "#a9713f"); px(x - 6, y + 22, 32, 2, "#7a4f28");
   px(x - 5, y + 24, 30, 10, "#6f4518"); px(x - 4, y + 26, 28, 1, "#5c3a14");
   px(x - 5, y + 34, 3, 5, "#4a2e12"); px(x + 22, y + 34, 3, 5, "#4a2e12");
-  const glow = on ? (flick ? "#9ef0ff" : "#cfe8ff") : "#5a5a5a";
+  const glow = status === "standby" ? "#8fb7cc" : on ? (flick ? "#9ef0ff" : "#cfe8ff") : "#5a5a5a";
   if (prop === "screens") {
     [-4, 12].forEach(dx => { px(x + dx, y + 11, 11, 7, "#2b2b2b"); px(x + dx + 1, y + 10, 9, 1, glow); });
     return;
@@ -608,7 +608,7 @@ function drawDesk(x, y, prop, status, t) {
   if (prop === "arch") { px(x - 4, y + 14, 7, 4, "#dbe9f6"); px(x - 3, y + 15, 2, 1, "#1d4e89"); px(x, y + 16, 2, 1, "#1d4e89"); px(x + 20, y + 12, 7, 6, "#6f4518"); px(x + 21, y + 13, 5, 1, "#c9a227"); }  // blueprint + tool box
   if (prop === "code") { px(x + 18, y + 11, 10, 7, "#2b2b2b"); ["#90e0ef", "#f4a261", "#b5e48c"].forEach((c, i) => px(x + 19 + i, y + 12 + i * 2, 6 - i, 1, on ? c : "#555")); px(x - 4, y + 15, 4, 3, "#ffd60a"); px(x - 3, y + 14, 2, 1, "#ffd60a"); px(x - 5, y + 16, 1, 1, "#f77f00"); }  // 2nd screen + rubber duck
   if (prop === "tests") { const bad = status === "error"; px(x + 19, y + 12, 8, 6, "#fff"); for (let i = 0; i < 2; i++) px(x + 20, y + 13 + i * 2, 2, 1, bad && i ? "#c1121f" : "#2d9d5c"); px(x + 23, y + 13, 3, 1, "#999"); px(x + 23, y + 15, 3, 1, "#999"); }  // checklist
-  if (prop === "deploy") { px(x + 19, y + 14, 8, 4, "#495057"); disc(x + 23, y + 14, 2, on && (t >> 8) & 1 ? "#ff6b6b" : "#c1121f"); }  // the big red deploy button
+  if (prop === "deploy") { px(x + 19, y + 14, 8, 4, "#495057"); disc(x + 23, y + 14, 2, status === "working" && (t >> 8) & 1 ? "#ff6b6b" : "#c1121f"); }  // the big red deploy button
 }
 function drawBossDesk(x, y) {
   px(x - 22, y + 18, 62, 5, "#6b4432"); px(x - 22, y + 23, 62, 2, "#4a2f22"); px(x - 21, y + 25, 60, 12, "#4a2f22");
@@ -618,7 +618,7 @@ function drawBossDesk(x, y) {
 }
 let BACKVIEW = false;                              // true while drawing someone seen from behind (facing away from us)
 function drawPerson(c, x, y, status, t, walking, pose) {
-  const bob = status === "working" ? ((t >> 8) & 1) : 0, sleepy = status === "idle";
+  const bob = status === "working" ? ((t >> 8) & 1) : 0, sleepy = status === "idle" && !daytime();   // asleep (eyes shut, Zzz) only outside office hours, 10 PM - 6 AM PHT
   const hy = y + (sleepy ? 1 : 0) - bob, top = c.blazer || c.shirt;
   if (walking || pose === "stand") {                                              // legs + shoes ("stand" = still, in a meeting)
     const step = walking ? (t >> 7) & 1 : 0;
@@ -659,11 +659,25 @@ function drawPerson(c, x, y, status, t, walking, pose) {
   } else if (pose === "read") {                                                   // holding an open book
     px(x, y + 13, 3, 7, sleeve); px(x + 16, y + 13, 3, 7, sleeve);
     px(x + 3, y + 10, 13, 7, "#1d4e89"); px(x + 4, y + 11, 5, 5, "#f7f1e3"); px(x + 10, y + 11, 5, 5, "#f7f1e3"); px(x + 9, y + 10, 1, 7, "#0b2545");
+  } else if (pose === "write") {                                                  // pen moving over paper at the desk
+    const w = (t >> 7) & 1, pen = c.pen || "#1d4e89";
+    px(x, y + 13, 3, 9, sleeve); px(x, y + 22, 3, 2, c.skin);
+    px(x + 14, y + 14, 4, 8, sleeve); px(x + 14 + w, y + 21, 3, 3, c.skin); px(x + 17 + w, y + 21, 1, 4, pen);
+  } else if (pose === "scroll") {                                                 // phone held up, thumb scrolling
+    const sc = (t >> 8) % 3;
+    px(x, y + 13, 3, 9, sleeve); px(x, y + 22, 3, 2, c.skin);
+    px(x + 14, y + 10, 4, 7, sleeve); px(x + 16, y + 5, 6, 9, "#111"); px(x + 17, y + 6, 4, 7, "#1b3a4b");
+    px(x + 17, y + 7 + sc, 4, 1, "#25f4ee"); px(x + 17, y + 10 + (sc + 1) % 3, 3, 1, "#25f4ee");
+  } else if (pose === "flip") {                                                   // open book, a page turning
+    const f = (t >> 8) & 1;
+    px(x, y + 13, 3, 7, sleeve); px(x + 16, y + 13, 3, 7, sleeve);
+    px(x + 3, y + 10, 13, 7, "#5d1a1a"); px(x + 4, y + 11, 5, 5, "#f7f1e3"); px(x + 10, y + 11, 5, 5, "#f7f1e3"); px(x + 9, y + 10, 1, 7, "#3a0d0d");
+    px(x + 9 + f * 2, y + 11, 1, 5, "#ffffff"); px(x + 5, y + 13, 3, 1, "#999"); px(x + 11, y + 13, 3, 1, "#999");
   } else if (pose === "sip") {                                                    // cup at the mouth
     px(x, y + 13, 3, 9, sleeve); px(x, y + 22, 3, 2, c.skin);
     px(x + 15, y + 9, 3, 6, sleeve); px(x + 13, y + 7, 4, 4, "#fdfdfd"); px(x + 17, y + 8, 1, 2, "#fdfdfd");
   } else {
-    const arm = status === "working" ? ((t >> 6) & 1) : walking ? ((t >> 7) & 1) : 0;
+    const arm = status === "working" || pose === "type" ? ((t >> 6) & 1) : walking ? ((t >> 7) & 1) : 0;
     px(x, y + 13 + arm, 3, 9, sleeve); px(x + 16, y + 14 - arm, 3, 9, sleeve);
     px(x, y + 22 + arm, 3, 2, c.skin); px(x + 16, y + 23 - arm, 3, 2, c.skin);
   }
@@ -812,7 +826,64 @@ function idleTick(t) {
     } else POSES.set(id, { pose: r < 0.75 ? "stretch" : "read", until: now + 2500 + Math.random() * 2500 });
   }
 }
+// What each person does at the desk when there is no work (ambient only: the status light stays the truth). ~9 s per step.
+const STANDBY = { planner: ["write", "think", "flip"], writer: ["write", "write", "think"], checker: ["flip", "flip", "think"],
+  editor: ["write", "think", "write"], producer: ["scroll", "write", "think"], narrator: ["sip", "think", "think"],
+  renderer: ["type", "type", "think"], clerk: ["type", "scroll", "type"], social: ["scroll", "scroll", "type"],
+  strategist: ["think", "type", "write"], lead: ["write", "think", "think"], developer: ["type", "type", "think"],
+  tester: ["write", "type", "think"], deployer: ["think", "sip", "type"] };
+function standbyPose(id, t) {
+  const list = STANDBY[id]; if (!list) return null;
+  const seed = [...id].reduce((a, ch) => a + ch.charCodeAt(0) * 977, 0);
+  return list[Math.floor((t + seed) / 9000) % list.length];
+}
 function poseOf(id) { const p = POSES.get(id); if (!p) return null; if (performance.now() > p.until) { POSES.delete(id); return null; } return p.pose; }
+// Ambient bubbles: an idle person at the desk occasionally says something TRUE from the data we already have
+// (tomorrow's saint, today's videos, yesterday's views, open tickets ...). Never invented; skipped when there is nothing to say.
+const AMB_LAST = new Map();
+function ambientLine(id) {
+  const day = manilaDay(), runs = S.runs.filter(r => !/^(test-|lf-)/.test(r.day)), F = S.schedule?.formats || {}, lab = k => F[k]?.label || (k || "").replace(/_/g, " ");
+  const wd = d => CAL_DAYS[(new Date(d + "T00:00:00Z").getUTCDay() + 6) % 7];
+  const tom = new Date(Date.parse(day + "T00:00:00Z") + DAY_MS).toISOString().slice(0, 10), yday = new Date(Date.parse(day + "T00:00:00Z") - DAY_MS).toISOString().slice(0, 10);
+  const published = runs.filter(r => r.stage === "published");
+  const week = published.filter(r => r.day.slice(0, 10) >= new Date(Date.parse(day + "T00:00:00Z") - 7 * DAY_MS).toISOString().slice(0, 10));
+  const sw = (S.tasks || []).filter(t => t.owner === "Software team"), open = sw.filter(t => t.status !== "done");
+  const u = (S.upcoming?.days || []).find(d => d.date === tom);
+  const V = S.vstats || {}, yv = ["", "-pm"].map(x => V[yday + x]?.views).filter(v => v != null);
+  const todayRuns = ["", "-pm"].map(x => runs.find(r => r.day === day + x));
+  switch (id) {
+    case "planner": return u?.saints?.[0] ? `Tomorrow: ${u.saints[0]}` : u?.feast ? `Tomorrow: ${u.feast}` : S.schedule?.grid?.morning?.[wd(tom)] ? `Tomorrow's morning video: ${lab(S.schedule.grid.morning[wd(tom)])}` : "";
+    case "writer": return published[0]?.title ? `Latest video: "${published[0].title}"` : "";
+    case "checker": return week.length ? `${week.length} videos this week, every verse checked` : "";
+    case "editor": { const n = todayRuns.filter(r => r && ["writing", "revising"].includes(r.stage)).length; return n ? "" : "Nothing waiting for review"; }
+    case "producer": return todayRuns.some(Boolean) || S.schedule?.grid ? `Today: ☀ ${lab(todayRuns[0]?.format || S.schedule?.grid?.morning?.[wd(day)])} · ☾ ${lab(todayRuns[1]?.format || S.schedule?.grid?.evening?.[wd(day)])}` : "";
+    case "narrator": { const c = S.credits?.[S.credits.length - 1]; return c ? `${(c.total - c.used).toLocaleString()} voice credits left` : ""; }
+    case "renderer": return week.length ? `${week.length} videos rendered this week` : "";
+    case "clerk": { const n = runs.filter(r => r.stage === "awaiting_approval").length; return n ? `${n} waiting for the Boss` : "Nothing waiting for the Boss"; }
+    case "social": return week.length ? `${week.length} videos posted this week` : "";
+    case "strategist": return yv.length ? `Yesterday: ${yv.reduce((a, b) => a + Number(b), 0).toLocaleString()} YouTube views` : "";
+    case "lead": return sw.length ? `${open.length} open ticket${open.length === 1 ? "" : "s"}` : "";
+    case "developer": { const d = sw.filter(t => t.status === "done").sort((a, b) => (b.done_on || "").localeCompare(a.done_on || ""))[0]; return d ? `Last shipped: #${d.num}` : ""; }
+    case "tester": return sw.some(t => t.status === "doing") ? "A fix is in progress" : "No fixes in progress";
+    case "deployer": { const w = sw.filter(t => t.status === "waiting").length; return w ? `${w} waiting for the Boss's tap` : "Nothing waiting to deploy"; }
+  }
+  return "";
+}
+if (IS_DEMO) window.__amb = ambientLine;      // demo only: lets the preview show every line
+let AMB_NEXT = 0;
+function ambientTick() {
+  const now = performance.now();
+  if (now < AMB_NEXT || !daytime() || meetingOn() || document.hidden) return;
+  AMB_NEXT = now + (IS_DEMO ? 7000 : 70000 + Math.random() * 60000);
+  if ([...S.bubbles].some(([, m]) => Date.now() - m.at < BUBBLE_MS)) return;                  // never talk over a real hand-off
+  const pool = Object.keys(CAST).filter(id => id !== "boss" && effStatus(S.agents.get(id)) === "idle" && !WALKS.has(id) && !MEET.has(id));
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  for (const id of pool) {
+    const text = ambientLine(id);
+    if (!text || AMB_LAST.get(id) === text) continue;
+    AMB_LAST.set(id, text); S.bubbles.set(id, { text, at: Date.now() }); return;
+  }
+}
 // ---------- TV mode: the office full screen with a status bar ----------
 function tvOn() {
   document.body.classList.add("tvmode");
@@ -1217,6 +1288,7 @@ function draw(t) {
   drawWalls(); drawDecor(t); drawSeason(t);
   const dt = Math.min(100, t - (draw.last || t)); draw.last = t;
   idleTick(t);
+  ambientTick();
   if (meetingOn()) meetTick(t);
   const catMoving = catTick(dt);
   if (CAT.y < 96) drawCat(t, catMoving);                                          // behind the desks when "up" the room
@@ -1237,9 +1309,10 @@ function draw(t) {
       drawPop(id, p.x, p.y);
       continue;
     }
-    const pose = cheer ? "stretch" : st === "idle" && daytime() ? poseOf(id) : null;
-    drawPerson(c, p.x, p.y, pose ? "walk" : st, t, false, pose);
-    drawDesk(c.x, c.y, c.prop, st, t);
+    const standby = st === "idle" && daytime() && !cheer, brk = standby ? poseOf(id) : null;       // a coffee-break stretch/read wins over the routine
+    const pose = cheer ? "stretch" : brk || (standby ? standbyPose(id, t) : null);
+    drawPerson(c, p.x, p.y, brk || cheer ? "walk" : st, t, false, pose);
+    drawDesk(c.x, c.y, c.prop, standby && !brk ? "standby" : st, t);
     if (st === "working" && !pose && id !== "producer") drawEmote(id, p.x, p.y, t);
     drawPop(id, p.x, p.y);
   }
@@ -1288,7 +1361,7 @@ function calDay(key, wdName, slot, today) {
   const first = S.runs.reduce((a, r) => /^20\d\d-\d\d-\d\d/.test(r.day) && r.day.slice(0, 10) < a ? r.day.slice(0, 10) : a, "9999-12-31");   // before the first video: no data, not "missed"
   let kind = run ? (STAGE_KIND[run.stage] || "make") : (key.slice(0, 10) < first ? "none" : key.slice(0, 10) < today ? "miss" : "plan");
   const v = S.vstats?.[key];
-  return { key, slot, fmt, label: F[fmt]?.label || (fmt ? fmt.replace(/_/g, " ").replace(/\w/g, c => c.toUpperCase()) : "-"), kind, title: run?.title || "", run, v, swapped: !!(run?.format && planned && run.format !== planned) };
+  return { key, slot, fmt, label: F[fmt]?.label || (fmt ? fmt.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "-"), kind, title: run?.title || "", run, v, swapped: !!(run?.format && planned && run.format !== planned) };
 }
 function renderCalModal() {
   let m = document.getElementById("calmodal");
