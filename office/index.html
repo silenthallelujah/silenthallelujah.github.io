@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-16 18:39">
+<meta name="build" content="2026-10-16 18:46">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1550,7 +1550,7 @@ function platformChips(r) {                     // per-platform state (from publ
 }
 function runDate(day) {                          // "2026-10-02" -> MM-DD over AM; "2026-10-02-pm" -> PM; "lf-22-20261002" -> long-form
   let m = /^(\d{4})-(\d\d)-(\d\d)(-pm)?$/.exec(day);
-  if (m) return `${m[2]}-${m[3]}<br><span class="snote">${m[4] ? "PM" : "AM"}</span>`;
+  if (m) return `${m[2]}-${m[3]}<br><span class="snote">${m[4] ? "PM" : "AM"}<br>ET</span>`;
   m = /^lf-\d+-(\d{4})(\d\d)(\d\d)$/.exec(day);
   if (m) return `${m[2]}-${m[3]}<br><span class="snote">Long-form</span>`;
   return esc(day.slice(5));
