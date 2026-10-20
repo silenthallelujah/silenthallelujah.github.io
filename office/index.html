@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-20 21:07">
+<meta name="build" content="2026-10-21 06:42">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -135,6 +135,23 @@ body.tvmode #tvbar { display: flex; position: fixed; z-index: 42; left: 0; right
 #updbar button { margin-left: 10px; background: #1b1a24; color: var(--gold); padding: 6px 12px; }
 .seasonpill { margin-left: 10px; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--season, var(--line)); }
 header { border-bottom-color: var(--season, var(--line)) !important; }
+/* MOBILE HEADER (2026-10-21): the status line was one long wrapped sentence with pills cut in half. On a phone it becomes a tidy set of chips
+   (each chip stays whole and wraps as a unit), and the clock + buttons sit on their own row underneath. */
+@media (max-width: 600px) {
+  header { flex-wrap: wrap; align-items: flex-start; padding: 10px 12px; gap: 8px 10px; }
+  header img { margin-top: 2px; }
+  header .grow { flex: 1 1 0; min-width: 0; }
+  header h1 { font-size: 10px; line-height: 1.5; }
+  header .sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin-top: 4px; font-size: 11px; line-height: 1.3; }
+  header .sub > * { margin: 0 !important; padding: 2px 8px; border-radius: 99px; background: #1b1a24; white-space: nowrap; max-width: 100%; font-size: 11px; }
+  header .sub > #pc { white-space: normal; }   /* the long PC status may wrap inside its own chip on very narrow phones */
+  header .sub > #season { background: transparent; }
+  header .sub > #wx { color: var(--muted); }
+  header .sub > .hdrchip { display: inline-flex; align-items: center; }
+  #live { margin-right: 5px; }
+  header > div:last-child { flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
+  #clock { margin-right: auto; text-align: left; }
+}
 #stage { border-color: var(--season, var(--line)) !important; }
 #stage { container-type: inline-size; }         /* wall-screen text scales with the office, not the window */
 .tv { position: absolute; display: flex; align-items: center; gap: 3%; padding: 0 1.5%; overflow: hidden; color: #cfe8ff;
@@ -258,7 +275,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
   <img src="../logo.png" alt="">
   <div class="grow">
     <h1>SILENT HALLELUJAH OFFICE</h1>
-    <div class="sub"><span id="live"></span><span id="livetxt">Connecting…</span>
+    <div class="sub"><span class="hdrchip"><span id="live"></span><span id="livetxt">Connecting…</span></span>
       <span id="pc" class="pcpill hide"><i></i><span></span></span>
       <span id="season" class="seasonpill"></span> <span id="wx" class="wxpill"></span></div>
   </div>
