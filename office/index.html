@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-16 19:13">
+<meta name="build" content="2026-10-20 21:07">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -192,9 +192,10 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .meter div { height: 100%; background: var(--work); } .meter.amber div { background: var(--wait); } .meter.red div { background: var(--err); }
 .cr { margin-bottom: 3px; }
 .acct { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--line); font-size: 13px; }
-.subscr { position: absolute; background: #0b132b; border: 1px solid #c9a227; color: #fffdf5; font: 700 0.95cqw/1.2 var(--body);
-         display: grid; grid-template-columns: 1fr 1fr; align-content: center; gap: 0.15cqw 0.5cqw; padding: 0.2cqw 0.45cqw; cursor: help;
+.subscr { position: absolute; box-sizing: border-box; background: #0b132b; border: 1px solid #c9a227; color: #fffdf5; font: 700 0.84cqw/1.2 var(--body);
+         display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: center; gap: 0.15cqw 0.3cqw; padding: 0.2cqw 0.35cqw; cursor: help;
          pointer-events: auto; z-index: 5; white-space: nowrap; }
+.subscr .c { display: flex; justify-content: space-between; gap: 0.2cqw; min-width: 0; }   /* label left, count right: a 2-digit count never touches the border */
 .subscr .c b { color: #f2c14e; } .subscr .c.off { opacity: .55; }
 .subscr .tip { display: none; position: absolute; left: 50%; top: 112%; transform: translateX(-50%); width: max-content; max-width: 36cqw;
                background: #16162a; border: 1px solid #c9a227; border-radius: 3px; padding: 0.6cqw 0.9cqw; font: 500 1.1cqw/1.45 var(--body);
@@ -1677,11 +1678,12 @@ function renderSubs() {
 }
 const subEl = document.createElement("div");           // the Boss's office: a small wall screen with every platform's count; hover = start dates
 subEl.className = "subscr"; subEl.tabIndex = 0;
-Object.assign(subEl.style, { left: pct(408, W), top: pct(22, H), width: pct(42, W), height: pct(26, H) });   // a standing sign on the floor under the logo frame, left of the shelf (the Boss marked this spot; NOT on the wall: the windows are there)
+Object.assign(subEl.style, { left: pct(406, W), top: pct(22, H), width: pct(46, W), height: pct(26, H) });   // a standing sign on the floor under the logo frame, left of the shelf (the Boss marked this spot; NOT on the wall: the windows are there)
 overlay.append(subEl);
 function renderSubScreen() {
   const hb = S.heartbeat.subscribers, c = hb?.info?.counts || {};
-  const cell = ([k]) => `<span class="c${c[k] == null ? " off" : ""}">${SUB_SHORT[k]} <b>${c[k] != null ? Number(c[k]).toLocaleString() : "-"}</b></span>`;
+  const short = n => n >= 10000 ? Math.round(n / 1000) + "k" : n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(n);   // 1.2k: a big count must never spill over the sign's border
+  const cell = ([k]) => `<span class="c${c[k] == null ? " off" : ""}">${SUB_SHORT[k]} <b>${c[k] != null ? short(Number(c[k])) : "-"}</b></span>`;
   const tip = `<div class="tip"><b>Followers &amp; subscribers</b><br>${SUB_ROWS.map(([k, name]) => `${name}: <b>${c[k] != null ? Number(c[k]).toLocaleString() : "no count"}</b> <span class="muted">(${SUB_SINCE[k]})</span>`).join("<br>")}</div>`;
   const html = SUB_ROWS.map(cell).join("") + tip;
   if (subEl.innerHTML !== html) subEl.innerHTML = html;
