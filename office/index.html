@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-25 15:26">
+<meta name="build" content="2026-10-25 15:35">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,19 +63,24 @@ main { max-width: 1480px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .wallcal:hover, .wallcal:focus-visible { outline: 2px solid var(--gold); transform: translateY(-1px); }
 .mdlbtn { font: 10px var(--pixel); color: #fffdf5; background: #1d2252; border: 1px solid #4b56a8; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
 .mdlbtn:hover, .mdlbtn:focus-visible { border-color: var(--gold); color: var(--gold); }
-.mdlbox { background: #14142a; border: 2px solid var(--gold); border-radius: 8px; width: min(760px, 100%); padding: 14px 18px 16px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.mdlbox { background: #14142a; border: 2px solid var(--gold); border-radius: 8px; width: min(1120px, 100%); padding: 10px 16px 12px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.mdlcols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 26px; }
+@media (max-width: 900px) { .mdlcols { grid-template-columns: minmax(0, 1fr); } }
+#mdlmodal { padding: 12px; align-items: center; }
 .mdlbox h2 { margin: 0; color: var(--gold); flex: 1; } .mdlhead { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.mdlpre { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 8px; font-size: 13px; }
+.mdlpre { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 4px; font-size: 13px; }
 .mdlpre button { font: 10px var(--pixel); padding: 4px 9px; }
-.mdlrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--line); }
+.mdlrow { display: flex; align-items: center; gap: 10px; padding: 4px 0; border-top: 1px dashed var(--line); min-height: 38px; }
 .mdlrow .who { flex: 1; min-width: 0; } .mdlrow .who b { color: var(--gold); } .mdlrow .who span { color: var(--ink); margin-left: 6px; }
 .mdlrow .who small { display: block; color: var(--muted); font-size: 11px; }
-.mdlrow select { width: 220px; max-width: 48vw; background: #0d0c1e; color: var(--ink); border: 1px solid #4b56a8; border-radius: 4px; padding: 6px 8px; font: inherit; }
-.mdlrow .none { width: 220px; max-width: 48vw; color: var(--muted); font-size: 12px; text-align: right; }
+.mdlrow select { width: 200px; max-width: 48vw; background: #0d0c1e; color: var(--ink); border: 1px solid #4b56a8; border-radius: 4px; padding: 4px 6px; font: inherit; }
+.mdlrow .none { width: 200px; max-width: 48vw; color: var(--muted); font-size: 12px; text-align: right; }
 .mdlrow.off .who b { color: var(--muted); }
-.mdlsec { margin-top: 10px; font: 10px var(--pixel); color: var(--muted); letter-spacing: .06em; }
+.mdlsec { margin-top: 6px; padding-bottom: 2px; font: 10px var(--pixel); color: var(--muted); letter-spacing: .06em; }
 #mdlstatus { font-size: 12px; color: var(--muted); margin-left: auto; }
-@media (max-width: 600px) { .mdlrow { flex-wrap: wrap; } .mdlrow select, .mdlrow .none { width: 100%; max-width: none; text-align: left; } }
+@media (max-width: 600px) { .mdlrow { gap: 6px; min-height: 32px; } .mdlrow .who small { display: none; }   /* phones: one line per agent, notes hidden */
+  .mdlrow select { width: 146px; padding: 3px 4px; font-size: 12.5px; } .mdlrow .none { width: 120px; font-size: 11px; }
+  .mdlbox { padding: 8px 10px 10px; } .mdlbox > .muted { display: none; } }
 .calmodal { position: fixed; inset: 0; z-index: 100; background: rgba(5,5,12,.72); display: flex; align-items: flex-start; justify-content: center;
             padding: 3vh 12px; overflow: auto; }
 .calbox { background: #14142a; border: 2px solid var(--gold); border-radius: 8px; width: min(1040px, 100%); padding: 12px 14px 14px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
@@ -1467,6 +1472,7 @@ calEl.onclick = openCal;
 document.getElementById("calbtn").onclick = openCal;
 // ---------- Agent Models: which Claude model each agent uses (Supabase agent_models; the mini PC reads it via models.py) ----------
 const MODEL_OPTS = [["claude-opus-5-5", "Opus - highest quality"], ["claude-sonnet-5-5", "Sonnet - balanced"], ["claude-haiku-5-5", "Haiku - fastest, cheapest"]];
+const MODEL_SHORT = { "claude-opus-5-5": "Opus (best)", "claude-sonnet-5-5": "Sonnet (balanced)", "claude-haiku-5-5": "Haiku (cheapest)" };   // phones: fits the narrow dropdown
 const MODEL_AI = ["planner", "writer", "editor", "social", "strategist", "renderer", "lead", "developer", "tester", "ask"];
 const MODEL_NOTE = { renderer: "Claude only for prayer-video change notes (the videos themselves are ffmpeg)", social: "comment replies",
                      strategist: "the Sunday growth review", ask: "your /ask questions in Telegram" };
@@ -1508,7 +1514,8 @@ function renderModels() {
     if (!MODEL_AI.includes(id)) return `<div class="mdlrow off"><div class="who"><b>${esc(modelName(id))}</b><span>${esc(modelRole(id))}</span></div>
       <div class="none">${esc(MODEL_NONE[id] || "No AI model")}</div></div>`;
     const cur = (MODELS || {})[id] || MODEL_PRESETS.balanced[id];
-    const opts = MODEL_OPTS.map(([v, l]) => `<option value="${v}"${v === cur ? " selected" : ""}>${l}</option>`).join("");
+    const narrow = matchMedia("(max-width: 600px)").matches;
+    const opts = MODEL_OPTS.map(([v, l]) => `<option value="${v}"${v === cur ? " selected" : ""}>${narrow ? MODEL_SHORT[v] : l}</option>`).join("");
     return `<div class="mdlrow"><div class="who"><b>${esc(modelName(id))}</b><span>${esc(modelRole(id))}</span>${MODEL_NOTE[id] ? `<small>${esc(MODEL_NOTE[id])}</small>` : ""}</div>
       <select data-agent="${id}" aria-label="Model for ${esc(modelName(id))}">${opts}</select></div>`;
   };
@@ -1518,15 +1525,25 @@ function renderModels() {
       (pay-per-use API). Changes apply from the next Claude call - a call already running keeps its model.</div>
     <div class="mdlpre">Presets: <button data-preset="economy">Economy</button><button data-preset="balanced">Balanced</button><button data-preset="max">Max quality</button>
       <span id="mdlstatus">${esc(modelsMsg)}</span></div>
-    ${MODEL_ORDER.map(([title, ids]) => `<div class="mdlsec">${title}</div>` + ids.map(rowFor).join("")).join("")}
+    <div class="mdlcols">${[MODEL_ORDER.slice(0, 1), MODEL_ORDER.slice(1)].map(col => `<div>${col.map(([title, ids]) =>
+      `<div class="mdlsec">${title}</div>` + ids.map(rowFor).join("")).join("")}</div>`).join("")}</div>
   </div>`;
   m.classList.remove("hide");
+  fitModels();
   m.querySelector("#mdlclose").onclick = closeModels;
   m.querySelectorAll("select[data-agent]").forEach(sel => sel.onchange = async () => {
     modelsMsg = "Saving…"; renderModels(); await saveModels({ [sel.dataset.agent]: sel.value }); renderModels(); });
   m.querySelectorAll("[data-preset]").forEach(b => b.onclick = async () => {
     modelsMsg = "Saving…"; renderModels(); await saveModels({ ...MODEL_PRESETS[b.dataset.preset] }); renderModels(); });
 }
+function fitModels() {                          // everything visible without scrolling: shrink the box (CSS zoom) to the window height
+  const box = document.querySelector("#mdlmodal .mdlbox");
+  if (!box) return;
+  box.style.zoom = "";
+  const avail = innerHeight - 24, h = box.getBoundingClientRect().height;
+  if (h > avail) box.style.zoom = String(Math.max(0.55, avail / h).toFixed(3));   // below 55% it would be unreadable: then it scrolls
+}
+addEventListener("resize", () => { if (modelsOpen) fitModels(); });
 async function openModels() { modelsOpen = true; modelsMsg = ""; renderModels(); await loadModels(); renderModels(); }
 function closeModels() { modelsOpen = false; renderModels(); document.getElementById("modelsbtn")?.focus(); }
 document.getElementById("modelsbtn").onclick = openModels;
