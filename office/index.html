@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-25 15:49">
+<meta name="build" content="2026-10-26 22:14">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -279,6 +279,9 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .kcard .top { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 4px; }
 .kcard .ti { font-weight: 600; margin-bottom: 4px; overflow-wrap: anywhere; }
 .kcard .de { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.kcard .wagent { display: flex; align-items: center; gap: 6px; margin: 2px 0 6px; font-size: 12.5px; }
+.kcard .wagent img { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--gold); flex: none; }
+.kcard .wagent b { color: var(--gold); } .kcard .wagent .act { color: var(--muted); }
 .kcard .ft { color: var(--muted); font-size: 11px; margin-top: 6px; }
 .who-you { background: #3b2f12; color: var(--gold); } .who-claude { background: #1f2c3f; color: #8ecae6; }
 .more { width: 100%; margin-top: 2px; }
@@ -1699,11 +1702,18 @@ const BOARD = { owner: "all", allDone: false, DONE_SHOWN: 8 };
 const COLS = [["backlog", "BACKLOG"], ["doing", "IN PROGRESS"], ["waiting", "WAITING"], ["done", "DONE"]];
 function renderBoard() {
   const tasks = S.tasks.filter(t => BOARD.owner === "all" || t.owner === BOARD.owner);
+  const wagent = t => {                          // who is actively on this card right now, and what they're doing (reviewing/
+    if (t.status !== "doing" || !t.agent) return "";   // developing/narrating ...) - only while it's really being worked, not while idle/waiting/done
+    const a = S.agents.get(t.agent);
+    return `<div class="wagent"><img src="${portrait(t.agent)}" alt="">
+      <b>${esc(a?.name || t.agent)}</b>${t.activity ? `<span class="act">— ${esc(t.activity)}</span>` : ""}</div>`;
+  };
   const card = t => `<div class="kcard s-${esc(t.status)}">
       <div class="top"><span class="num">#${t.num}</span><span class="badge">${esc(t.area)}</span>
         <span class="badge ${t.owner === "You" ? "who-you" : "who-claude"}">${t.owner === "You"
           ? `<img class="av sm" src="${portrait("boss")}" alt="">You` : `<span class="claude-mark">✳</span>Claude`}</span></div>
       <div class="ti">${esc(t.title)}</div>
+      ${wagent(t)}
       <div class="de">${esc(t.detail)}</div>
       <div class="ft">${t.status === "done" ? `Done ${esc(t.done_on || "")}` : t.updated_at ? `Updated ${ago(t.updated_at)}` : ""}</div></div>`;
   document.getElementById("cols").innerHTML = COLS.map(([st, label]) => {
@@ -2119,7 +2129,7 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
     S.vstats[d] = { views: 40 + i * 37, likes: i * 3, comments: i % 3 }; S.vstats[d + "-pm"] = { views: 12 + i * 21, likes: i, comments: 0 };
   }
   S.tasks = [{ id: "d1", num: 1, title: "Demo task waiting on you", detail: "Example only.", area: "Publishing", owner: "You", status: "waiting", sort: 1 },
-             { id: "d2", num: 2, title: "Demo task for Claude", detail: "Example only.", area: "Visuals", owner: "Claude", status: "doing", sort: 1 },
+             { id: "d2", num: 2, title: "Demo task for Claude", detail: "Example only.", area: "Visuals", owner: "Claude", status: "doing", sort: 1, agent: "developer", activity: "Writing the fix" },
              ...Array.from({ length: 11 }, (_, k) => ({ id: "d" + (k + 3), num: k + 3, title: `Demo finished task ${k + 3}`, detail: "Example only.",
                area: "Infrastructure", owner: k % 2 ? "You" : "Claude", status: "done", done_on: `2026-09-${String(20 + (k % 9)).padStart(2, "0")}`, sort: k })),
              { id: "d20", num: 20, title: "Demo backlog idea", detail: "Example only.", area: "Channel", owner: "You", status: "backlog", sort: 2 },
