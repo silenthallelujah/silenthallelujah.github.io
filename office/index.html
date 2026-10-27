@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-27 23:28">
+<meta name="build" content="2026-10-27 23:31">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1597,14 +1597,14 @@ function renderSpend() {
   const byAgent = {};
   for (const r of rows) byAgent[r.agent] = (byAgent[r.agent] || 0) + Number(r.cost_usd || 0);
   const max = Math.max(1e-9, ...Object.values(byAgent), 0);
-  const roster = MODEL_ORDER.flatMap(([, ids]) => ids);   // every agent is listed, $0.00 ones too
+  const roster = MODEL_AI;   // every Claude-using agent is listed, $0.00 ones too; code/voice-only agents never spend, so they're left out
   const ids = [...roster, ...Object.keys(byAgent).filter(id => !roster.includes(id))];
   const sorted = ids.map(id => [id, byAgent[id] || 0]).sort((a, b) => b[1] - a[1] || ids.indexOf(a[0]) - ids.indexOf(b[0]));
   const agentRow = ([id, cost]) => {
     const n = rows.filter(r => r.agent === id).length;
     const pic = CAST[id] ? `<img src="${portrait(id)}" alt="">` : `<span class="spendicon">\u{1F916}</span>`;   // "ask" (and any id with no office sprite) gets a generic icon, not a crashing portrait() call
     const role = modelRole(id);
-    const ct = n ? `${n} call${n === 1 ? "" : "s"}` : (MODEL_AI.includes(id) ? "0 calls" : "no AI");
+    const ct = `${n} call${n === 1 ? "" : "s"}`;
     return `<div class="spendrow${cost ? "" : " zero"}">${pic}
       <div style="flex:1;min-width:0"><div class="nm">${esc(modelName(id))}${role ? `<span class="rl">${esc(role)}</span>` : ""}</div>${cost ? `<div class="bar" style="width:${Math.max(2, cost / max * 100).toFixed(0)}%"></div>` : ""}</div>
       <span class="ct">${ct}</span><span class="amt">$${cost.toFixed(2)}</span></div>`;
