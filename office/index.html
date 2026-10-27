@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-26 22:14">
+<meta name="build" content="2026-10-27 09:48">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -78,6 +78,18 @@ main { max-width: 1480px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .mdlrow.off .who b { color: var(--muted); }
 .mdlsec { margin-top: 6px; padding-bottom: 2px; font: 10px var(--pixel); color: var(--muted); letter-spacing: .06em; }
 #mdlstatus { font-size: 12px; color: var(--muted); margin-left: auto; }
+.spendbox { background: #14142a; border: 2px solid var(--gold); border-radius: 8px; width: min(640px, 100%); padding: 14px 18px 16px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.spendbox h2 { margin: 0; color: var(--gold); flex: 1; }
+.spendtot { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.spendtot div { background: #1b1a38; border: 1px solid var(--line); border-radius: 6px; padding: 8px 6px; text-align: center; }
+.spendtot b { display: block; font: 700 1.3em var(--body); color: var(--gold); } .spendtot span { font-size: 11px; color: var(--muted); }
+.spendrow { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px dashed var(--line); }
+.spendrow img { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--gold); flex: none; }
+.spendrow .nm { flex: 1; font-weight: 600; } .spendrow .ct { color: var(--muted); font-size: 11.5px; margin-right: 8px; }
+.spendrow .bar { height: 6px; border-radius: 3px; background: var(--gold); margin-top: 3px; max-width: 100%; }
+.spendrow .amt { font-weight: 700; color: var(--gold); min-width: 64px; text-align: right; }
+.spendpre { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+@media (max-width: 600px) { .spendtot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .mdlrow { gap: 6px; min-height: 32px; } .mdlrow .who small { display: none; }   /* phones: one line per agent, notes hidden */
   .mdlrow select { width: 146px; padding: 3px 4px; font-size: 12.5px; } .mdlrow .none { width: 120px; font-size: 11px; }
   .mdlbox { padding: 8px 10px 10px; } .mdlbox > .muted { display: none; } }
@@ -302,7 +314,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
       <span id="pc" class="pcpill hide"><i></i><span></span></span>
       <span id="season" class="seasonpill"></span> <span id="wx" class="wxpill"></span></div>
   </div>
-  <div><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan">📅</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
+  <div><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan">📅</button> <button id="spendbtn" class="ghost" title="Claude spending">💰</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
 </header>
 
 <div id="alerts" class="hide"></div>
@@ -426,7 +438,7 @@ const px = (x, y, w, h, c) => { G.fillStyle = c; G.fillRect(Math.round(x), Math.
 
 // ---------- state ----------
 const S = { agents: new Map(), events: [], runs: [], tasks: [], schedule: null, heartbeat: {}, approvalAlert: null, credits: [],
-            selected: null, bubbles: new Map() };
+            spend: [], selected: null, bubbles: new Map() };
 const STATUS_COLOR = { working: "var(--work)", waiting: "var(--wait)", idle: "var(--idle)", error: "var(--err)", offline: "var(--off)" };
 const STALE_MS = 25 * 60 * 1000;
 const manilaDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
@@ -1553,6 +1565,51 @@ document.getElementById("modelsbtn").onclick = openModels;
 addEventListener("keydown", e => { if (e.key === "Escape" && modelsOpen) closeModels(); });
 if (QS.has("models")) setTimeout(openModels, 1500);   // preview: ?demo&models opens the window
 
+// ---------- Spending: real $ cost of Claude calls (2026-10-27, since the mini PC switched to a pay-per-use API key) ----------
+let spendOpen = false, spendPeriod = "week";
+const SPEND_PERIODS = { today: 1, week: 7, month: 30, all: Infinity };
+function spendSince(period) { const d = SPEND_PERIODS[period]; return d === Infinity ? 0 : Date.now() - d * 86400000; }
+function spendRows(period) { const since = spendSince(period); return S.spend.filter(r => new Date(r.at).getTime() >= since); }
+function renderSpend() {
+  let m = document.getElementById("spendmodal");
+  if (!m) {
+    m = document.createElement("div"); m.id = "spendmodal"; m.className = "calmodal hide";
+    m.addEventListener("click", e => { if (e.target === m) closeSpend(); });
+    document.body.append(m);
+  }
+  if (!spendOpen) { m.classList.add("hide"); return; }
+  const sum = rs => rs.reduce((a, r) => a + Number(r.cost_usd || 0), 0);
+  const today = sum(spendRows("today")), week = sum(spendRows("week")), month = sum(spendRows("month")), all = sum(S.spend);
+  const rows = spendRows(spendPeriod);
+  const byAgent = {};
+  for (const r of rows) byAgent[r.agent] = (byAgent[r.agent] || 0) + Number(r.cost_usd || 0);
+  const max = Math.max(1e-9, ...Object.values(byAgent), 0);
+  const sorted = Object.entries(byAgent).sort((a, b) => b[1] - a[1]);
+  const agentRow = ([id, cost]) => {
+    const a = S.agents.get(id), n = rows.filter(r => r.agent === id).length;
+    return `<div class="spendrow"><img src="${portrait(id)}" alt="">
+      <div style="flex:1;min-width:0"><div class="nm">${esc(a?.name || id)}</div><div class="bar" style="width:${Math.max(2, cost / max * 100).toFixed(0)}%"></div></div>
+      <span class="ct">${n} call${n === 1 ? "" : "s"}</span><span class="amt">$${cost.toFixed(2)}</span></div>`;
+  };
+  const pbtn = (k, label) => `<button class="chip${spendPeriod === k ? " on" : ""}" data-sp="${k}">${label}</button>`;
+  m.innerHTML = `<div class="spendbox" role="dialog" aria-modal="true" aria-label="Spending">
+    <div class="mdlhead"><h2>SPENDING</h2><button id="spendclose" class="ghost" title="Close">×</button></div>
+    <div class="muted" style="font-size:13px">Real dollar cost of this team's Claude calls, since the mini PC switched to the pay-per-use API key.</div>
+    <div class="spendtot"><div><b>$${today.toFixed(2)}</b><span>Today</span></div><div><b>$${week.toFixed(2)}</b><span>Last 7 days</span></div>
+      <div><b>$${month.toFixed(2)}</b><span>Last 30 days</span></div><div><b>$${all.toFixed(2)}</b><span>Loaded (35 days)</span></div></div>
+    <div class="spendpre">Breakdown by agent: ${pbtn("today", "Today")}${pbtn("week", "7 days")}${pbtn("month", "30 days")}${pbtn("all", "All loaded")}</div>
+    ${sorted.length ? sorted.map(agentRow).join("") : `<p class="muted" style="margin:8px 0 0">No calls in this period.</p>`}
+  </div>`;
+  m.classList.remove("hide");
+  m.querySelector("#spendclose").onclick = closeSpend;
+  m.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => { spendPeriod = b.dataset.sp; renderSpend(); });
+}
+function openSpend() { spendOpen = true; renderSpend(); }
+function closeSpend() { spendOpen = false; renderSpend(); document.getElementById("spendbtn")?.focus(); }
+document.getElementById("spendbtn").onclick = openSpend;
+addEventListener("keydown", e => { if (e.key === "Escape" && spendOpen) closeSpend(); });
+if (QS.has("spend")) setTimeout(openSpend, 1500);   // preview: ?demo&spend opens the window
+
 addEventListener("keydown", e => { if (e.key === "Escape" && calState.open) closeCal(); });
 setInterval(renderCalEl, 60000);
 [["Our Lady", 332, 13], ["☕ Coffee", 259, 24], ["💧 Water", 287, 20]].forEach(([text, x, y]) => {   // object labels
@@ -2042,6 +2099,11 @@ async function load() {
       .gte("at", new Date(Date.now() - 45 * 86400000).toISOString()).order("at", { ascending: false }).limit(1500);
     if (!st.error) { S.vstats = {}; for (const r of st.data) if (!(r.key in S.vstats)) S.vstats[r.key] = r.metrics; }
   } catch (e) { /* the calendar just shows no view counts */ }
+  try {                                  // Claude $ spend for the Spending window (never fatal - the rest of the office still loads)
+    const sp = await sb.from("spend").select("at,agent,cost_usd").gte("at", new Date(Date.now() - 35 * 86400000).toISOString())
+      .order("at", { ascending: false }).limit(8000);
+    if (!sp.error) S.spend = sp.data;
+  } catch (e) { /* the Spending window just shows nothing */ }
   renderAll();
 }
 let channel;
@@ -2135,6 +2197,14 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
              { id: "d20", num: 20, title: "Demo backlog idea", detail: "Example only.", area: "Channel", owner: "You", status: "backlog", sort: 2 },
              ...Array.from({ length: 6 }, (_, k) => ({ id: "q" + k, num: 21 + k, title: `Demo queued task ${21 + k} with a longer title`,
                detail: "Example only. ".repeat(12), area: "Editorial", owner: "Claude", status: "backlog", sort: 3 + k }))];
+  S.spend = Array.from({ length: 14 }, (_, d) => d).flatMap(d => [
+    { at: new Date(Date.now() - d * 86400000 - 3 * 3600000).toISOString(), agent: "writer", cost_usd: 0.9 + Math.random() * 0.6 },
+    { at: new Date(Date.now() - d * 86400000 - 2 * 3600000).toISOString(), agent: "editor", cost_usd: 0.3 + Math.random() * 0.3 },
+    { at: new Date(Date.now() - d * 86400000 - 1 * 3600000).toISOString(), agent: "strategist", cost_usd: d % 7 === 0 ? 0.6 : 0.05 },
+    { at: new Date(Date.now() - d * 86400000 - 4 * 3600000).toISOString(), agent: "social", cost_usd: 0.1 + Math.random() * 0.1 },
+    ...(d < 3 ? [{ at: new Date(Date.now() - d * 86400000 - 5 * 3600000).toISOString(), agent: "lead", cost_usd: 0.4 + Math.random() * 0.4 },
+                 { at: new Date(Date.now() - d * 86400000 - 5.5 * 3600000).toISOString(), agent: "developer", cost_usd: 0.3 + Math.random() * 0.3 }] : []),
+  ]);
   fetch("schedule.json").then(r => r.ok ? r.json() : null).then(j => { S.schedule = j; renderSchedule(); renderScreens(); }).catch(() => {});
   const alertsDemo = new URLSearchParams(location.search).get("demo") === "alerts";   // ?demo=alerts previews the warnings
   S.heartbeat = { scheduler: { at: new Date(Date.now() - (alertsDemo ? 45 : 3) * 60000).toISOString(), info: { disk_free_gb: 142.6 } },
