@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-27 16:21">
+<meta name="build" content="2026-10-27 16:32">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,7 +19,7 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--body); }
 a { color: var(--gold); }
-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 2px solid var(--line); }
+header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 2px solid var(--line); position: relative; z-index: 501; }   /* stays above the full-page #gate so the logo/title still show while gated */
 header img { width: 36px; height: 36px; border-radius: 50%; image-rendering: auto; }
 header h1 { font: 13px/1.4 var(--pixel); margin: 0; letter-spacing: .5px; }
 header .sub { color: var(--muted); font-size: 12px; }
@@ -299,16 +299,20 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .kcard .ft { color: var(--muted); font-size: 11px; margin-top: 6px; }
 .who-you { background: #3b2f12; color: var(--gold); } .who-claude { background: #1f2c3f; color: #8ecae6; }
 .more { width: 100%; margin-top: 2px; }
-#gate { position: absolute; inset: 0; display: none; place-items: center; background: rgba(8,8,14,.72); backdrop-filter: blur(2px); pointer-events: auto; }
+#gate { position: fixed; inset: 0; display: none; place-items: center; background: var(--bg, #0b0b16); z-index: 500; pointer-events: auto; }
 #gate .box { background: var(--panel); border: 2px solid var(--gold); border-radius: 8px; padding: 18px; width: min(92%, 380px); text-align: center; }
 #gate h3 { font: 11px/1.6 var(--pixel); margin: 0 0 10px; color: var(--gold); }
+/* signed out (and not ?demo): a full-page lock screen - only the logo/title and the sign-in box show, nothing else renders.
+   body starts with this class (no flash of real content before the auth check resolves); start()/demo() remove it. */
+body.gated main, body.gated #tvbar, body.gated #alerts, body.gated #updbar, body.gated #buildinfo, body.gated header .hdrctrl, body.gated header .sub { display: none !important; }
+body.gated #gate { display: grid; }
 button { font: 600 14px var(--body); background: var(--gold); color: #1b1a24; border: 0; border-radius: 6px; padding: 10px 14px; cursor: pointer; }
 button:disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
 button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; font-size: 12px; }
 .hide { display: none !important; }
 </style>
 </head>
-<body>
+<body class="gated">
 <header>
   <img src="../logo.png" alt="">
   <div class="grow">
@@ -317,8 +321,16 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
       <span id="pc" class="pcpill hide"><i></i><span></span></span>
       <span id="season" class="seasonpill"></span> <span id="wx" class="wxpill"></span></div>
   </div>
-  <div><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan" disabled>📅</button> <button id="spendbtn" class="ghost" title="Claude spending" disabled>💰</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
+  <div class="hdrctrl"><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan" disabled>📅</button> <button id="spendbtn" class="ghost" title="Claude spending" disabled>💰</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
 </header>
+
+<div id="gate"><div class="box">
+  <h3>STAFF ONLY</h3>
+  <p class="muted">Sign in with the channel email to see the team at work.</p>
+  <p><b>silent.hallelujah.324@gmail.com</b></p>
+  <button id="login">Email me a sign-in link</button>
+  <p id="loginmsg" class="muted"></p>
+</div></div>
 
 <div id="alerts" class="hide"></div>
 <div id="tvbar"><span id="tvclock"></span><span id="tvstatus"></span><span id="tvtoday"></span><span id="tvnext"></span><span id="tvpc"></span>
@@ -328,13 +340,6 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
     <div id="stage">
       <canvas id="cv" width="640" height="417"></canvas>
       <div id="overlay"></div>
-      <div id="gate"><div class="box">
-        <h3>STAFF ONLY</h3>
-        <p class="muted">Sign in with the channel email to see the team at work.</p>
-        <p><b>silent.hallelujah.324@gmail.com</b></p>
-        <button id="login">Email me a sign-in link</button>
-        <p id="loginmsg" class="muted"></p>
-      </div></div>
     </div>
     <div class="card">
       <div class="bhead"><h2 style="flex:none">WHO'S DOING WHAT</h2><button id="modelsbtn" class="mdlbtn" title="Which Claude model each agent uses" disabled>Agent Models</button></div>
@@ -2164,8 +2169,9 @@ document.getElementById("signout").onclick = async () => { await sb.auth.signOut
 async function start(session) {
   const ok = session?.user?.email?.toLowerCase() === OWNER;
   gate.style.display = ok ? "none" : "grid";
+  document.body.classList.toggle("gated", !ok);   // public page: a full lock screen, not just the office scene, until the owner signs in
   document.getElementById("signout").classList.toggle("hide", !session);
-  for (const id of ["calbtn", "spendbtn", "modelsbtn", "wallcal"]) document.getElementById(id).disabled = !ok;   // public-facing page: no operating it signed out, even though RLS already blocks the data
+  for (const id of ["calbtn", "spendbtn", "modelsbtn", "wallcal"]) document.getElementById(id).disabled = !ok;   // belt and suspenders under .gated, and covers TV mode where .gated is hidden
   if (!ok) {
     S.agents = new Map(); renderAll();
     document.getElementById("livetxt").textContent = session ? "This account can't view the office." : "Sign in to see the team.";
@@ -2175,6 +2181,7 @@ async function start(session) {
 }
 function demo() {        // ?demo: made-up statuses to preview the office without signing in (no real data)
   gate.style.display = "none";
+  document.body.classList.remove("gated");
   for (const id of ["calbtn", "spendbtn", "modelsbtn", "wallcal"]) document.getElementById(id).disabled = false;
   const names = { boss: ["Boss", "Owner (you)"], planner: ["Pat", "Planner"], writer: ["Wren", "Writer"], checker: ["Brother Luke", "Scripture Checker"],
     editor: ["Eddie", "Editor"], producer: ["Priya", "Producer (coordinator)"], narrator: ["Rusty", "Narrator"], renderer: ["Rex", "Renderer"],
