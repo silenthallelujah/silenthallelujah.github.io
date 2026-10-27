@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-27 16:32">
+<meta name="build" content="2026-10-27 16:35">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -299,12 +299,16 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .kcard .ft { color: var(--muted); font-size: 11px; margin-top: 6px; }
 .who-you { background: #3b2f12; color: var(--gold); } .who-claude { background: #1f2c3f; color: #8ecae6; }
 .more { width: 100%; margin-top: 2px; }
-#gate { position: fixed; inset: 0; display: none; place-items: center; background: var(--bg, #0b0b16); z-index: 500; pointer-events: auto; }
+#gate { position: fixed; inset: 0; display: none; place-items: center; background: rgba(8,8,14,.55); z-index: 500; pointer-events: auto; }
 #gate .box { background: var(--panel); border: 2px solid var(--gold); border-radius: 8px; padding: 18px; width: min(92%, 380px); text-align: center; }
 #gate h3 { font: 11px/1.6 var(--pixel); margin: 0 0 10px; color: var(--gold); }
-/* signed out (and not ?demo): a full-page lock screen - only the logo/title and the sign-in box show, nothing else renders.
+/* signed out (and not ?demo): a faint, unreadable impression of the page behind a heavy blur - no text, numbers or shapes
+   are legible, only the logo/title and the sign-in box (outside the blur) are crisp. Real data never loads while gated
+   (see start()), so this is belt-and-suspenders on top of that, not the only protection.
    body starts with this class (no flash of real content before the auth check resolves); start()/demo() remove it. */
-body.gated main, body.gated #tvbar, body.gated #alerts, body.gated #updbar, body.gated #buildinfo, body.gated header .hdrctrl, body.gated header .sub { display: none !important; }
+body.gated main, body.gated #tvbar, body.gated #alerts, body.gated #updbar, body.gated #buildinfo {
+  filter: blur(18px) brightness(.5); opacity: .35; pointer-events: none; user-select: none; }
+body.gated header .hdrctrl, body.gated header .sub { display: none !important; }
 body.gated #gate { display: grid; }
 button { font: 600 14px var(--body); background: var(--gold); color: #1b1a24; border: 0; border-radius: 6px; padding: 10px 14px; cursor: pointer; }
 button:disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
