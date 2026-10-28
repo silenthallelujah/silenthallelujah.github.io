@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-28 23:24">
+<meta name="build" content="2026-10-28 23:35">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -424,7 +424,7 @@ const CAST = {
   writer:   { x: 93,  y: 57,  skin: "#e0ac69", hair: "#1f1a17", shirt: "#e76f51", prop: "papers", style: "long", scarf: "#f4d35e" },
   checker:  { x: 153, y: 57,  skin: "#f5d0a9", hair: "#8d6e63", shirt: "#6d4c41", prop: "bible", style: "tonsure", habit: true },
   editor:   { x: 213, y: 57,  skin: "#c68642", hair: "#2b2b2b", shirt: "#2a9d8f", prop: "redpen", style: "short", glasses: true, pen: "#c1121f" },
-  producer: { x: 123, y: 108, skin: "#8d5524", hair: "#111", shirt: "#9b5de5", prop: "clipboard", style: "bun", blazer: "#6a3fb5" },
+  producer: { x: 123, y: 126, skin: "#8d5524", hair: "#111", shirt: "#9b5de5", prop: "clipboard", style: "bun", blazer: "#6a3fb5" },   // below the desk row's own tags (y:108 sat between Wren's and Luke's, tall enough to reach into both - 2026-10-28)
   boss:     { x: 384, y: 70,  skin: "#e0ac69", hair: "#2b2b2b", shirt: "#f2f2f2", prop: "boss", style: "side", tie: "#c1121f", blazer: "#2b2d42" },
   narrator: { x: 45,  y: 210, skin: "#f1c27d", hair: "#b5651d", shirt: "#8a5a44", prop: "mic", style: "short", phones: true, beard: true, plaid: "#6b3f2e" },
   renderer: { x: 126, y: 210, skin: "#ffdbac", hair: "#f4d03f", shirt: "#264653", prop: "screens", style: "beanie", beanie: "#e63946" },
@@ -889,7 +889,9 @@ function idleTick(t) {
     const out = [...WALKS.values()].filter(w => w.item === "cup").length, r = Math.random();
     const taken = new Set([...WALKS.values()].filter(w => w.item === "cup").map(w => String(w.path[w.path.length - 1])));
     const free = BREAK_SPOTS.filter(s => !taken.has(String(s)));
-    if (r < 0.45 && out < 2 && free.length) {
+    // Priya's desk sits below the row (not in it, so her "coordinator" tag never sits on a deskmate's - see CAST),
+    // so a straight walk up to the coffee corner would cut right back through that row; she skips the coffee walk
+    if (r < 0.45 && out < 2 && free.length && id !== "producer") {
       const spot = free[Math.floor(Math.random() * free.length)];
       startWalk(id, spot, "NEWSROOM", "cup", 3500 + Math.random() * 3000);
     } else POSES.set(id, { pose: r < 0.75 ? "stretch" : "read", until: now + 2500 + Math.random() * 2500 });
