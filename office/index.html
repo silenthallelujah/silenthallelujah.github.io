@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-28 23:35">
+<meta name="build" content="2026-10-28 23:51">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -420,11 +420,13 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const W = 640, H = 417;
 // x, y = top-left of the seated character (head at y, desk top at y + 18)
 const CAST = {
-  planner:  { x: 33,  y: 57,  skin: "#f1c27d", hair: "#6b3e26", shirt: "#4f8cff", prop: "calendar", style: "short", lanyard: true },
-  writer:   { x: 93,  y: 57,  skin: "#e0ac69", hair: "#1f1a17", shirt: "#e76f51", prop: "papers", style: "long", scarf: "#f4d35e" },
-  checker:  { x: 153, y: 57,  skin: "#f5d0a9", hair: "#8d6e63", shirt: "#6d4c41", prop: "bible", style: "tonsure", habit: true },
-  editor:   { x: 213, y: 57,  skin: "#c68642", hair: "#2b2b2b", shirt: "#2a9d8f", prop: "redpen", style: "short", glasses: true, pen: "#c1121f" },
-  producer: { x: 123, y: 126, skin: "#8d5524", hair: "#111", shirt: "#9b5de5", prop: "clipboard", style: "bun", blazer: "#6a3fb5" },   // below the desk row's own tags (y:108 sat between Wren's and Luke's, tall enough to reach into both - 2026-10-28)
+  planner:  { x: 33,  y: 36,  skin: "#f1c27d", hair: "#6b3e26", shirt: "#4f8cff", prop: "calendar", style: "short", lanyard: true },
+  writer:   { x: 93,  y: 36,  skin: "#e0ac69", hair: "#1f1a17", shirt: "#e76f51", prop: "papers", style: "long", scarf: "#f4d35e" },
+  checker:  { x: 153, y: 36,  skin: "#f5d0a9", hair: "#8d6e63", shirt: "#6d4c41", prop: "bible", style: "tonsure", habit: true },
+  editor:   { x: 213, y: 36,  skin: "#c68642", hair: "#2b2b2b", shirt: "#2a9d8f", prop: "redpen", style: "short", glasses: true, pen: "#c1121f" },
+  // row moved up from y:57 (2026-10-28) to clear room for Priya below: her desk (drawDesk always extends to y+39)
+  // overlapped the NEWSROOM/STUDIO wall at y:126, and the Boss asked for the row to move, not her desk into the wall
+  producer: { x: 123, y: 108, skin: "#8d5524", hair: "#111", shirt: "#9b5de5", prop: "clipboard", style: "bun", blazer: "#6a3fb5" },
   boss:     { x: 384, y: 70,  skin: "#e0ac69", hair: "#2b2b2b", shirt: "#f2f2f2", prop: "boss", style: "side", tie: "#c1121f", blazer: "#2b2d42" },
   narrator: { x: 45,  y: 210, skin: "#f1c27d", hair: "#b5651d", shirt: "#8a5a44", prop: "mic", style: "short", phones: true, beard: true, plaid: "#6b3f2e" },
   renderer: { x: 126, y: 210, skin: "#ffdbac", hair: "#f4d03f", shirt: "#264653", prop: "screens", style: "beanie", beanie: "#e63946" },
