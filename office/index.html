@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-27 23:31">
+<meta name="build" content="2026-10-28 23:06">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -92,6 +92,10 @@ main { max-width: 1480px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .spendrow .amt { font-weight: 700; color: var(--gold); min-width: 64px; text-align: right; }
 .spendrow.zero { opacity: .55; } .spendrow.zero .amt { color: var(--muted); }
 .spendpre { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+.spendlast { font-size: 12.5px; color: var(--muted); margin: -4px 0 10px; } .spendlast b { color: var(--gold); }
+.spendlive { color: var(--gold); font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+.spendlive.bump { animation: spendbump 1.5s ease-out; }
+@keyframes spendbump { 0% { background: rgba(255, 210, 90, .45); box-shadow: 0 0 12px var(--gold); } 100% { background: transparent; box-shadow: none; } }
 @media (max-width: 600px) { .spendtot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .mdlrow { gap: 6px; min-height: 32px; } .mdlrow .who small { display: none; }   /* phones: one line per agent, notes hidden */
   .mdlrow select { width: 146px; padding: 3px 4px; font-size: 12.5px; } .mdlrow .none { width: 120px; font-size: 11px; }
@@ -326,7 +330,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
       <span id="pc" class="pcpill hide"><i></i><span></span></span>
       <span id="season" class="seasonpill"></span> <span id="wx" class="wxpill"></span></div>
   </div>
-  <div class="hdrctrl"><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan" disabled>📅</button> <button id="spendbtn" class="ghost" title="Claude spending" disabled>💰</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
+  <div class="hdrctrl"><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan" disabled>📅</button> <span id="spendlive" class="spendlive hide" title="Claude spend today - click for details"></span> <button id="spendbtn"class="ghost" title="Claude spending" disabled>💰</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
 </header>
 
 <div id="gate"><div class="box">
@@ -1581,8 +1585,22 @@ if (QS.has("models")) setTimeout(openModels, 1500);   // preview: ?demo&models o
 // ---------- Spending: real $ cost of Claude calls (2026-10-27, since the mini PC switched to a pay-per-use API key) ----------
 let spendOpen = false, spendPeriod = "week";
 const SPEND_PERIODS = { today: 1, week: 7, month: 30, all: Infinity };
-function spendSince(period) { const d = SPEND_PERIODS[period]; return d === Infinity ? 0 : Date.now() - d * 86400000; }
+function spendSince(period) {   // "today" = the Manila calendar day (midnight PHT), same as spend.py's digest line and spike alert
+  if (period === "today") return new Date(manilaDay() + "T00:00:00+08:00").getTime();
+  const d = SPEND_PERIODS[period]; return d === Infinity ? 0 : Date.now() - d * 86400000;
+}
 function spendRows(period) { const since = spendSince(period); return S.spend.filter(r => new Date(r.at).getTime() >= since); }
+function renderSpendLive(bump) {   // always-visible "$1.23 today" chip in the header; bump = a new call just arrived
+  const el = document.getElementById("spendlive");
+  const off = document.body.classList.contains("gated") || !S.spend.length;
+  el.classList.toggle("hide", off);
+  if (off) { el.textContent = ""; return; }
+  el.textContent = `$${spendRows("today").reduce((a, r) => a + Number(r.cost_usd || 0), 0).toFixed(2)} today`;
+  if (bump) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }   // reflow restarts the flash if two calls land close together
+}
+function spendArrived(row) { S.spend.unshift(row); renderSpendLive(true); if (spendOpen) renderSpend(); }
+document.getElementById("spendlive").addEventListener("animationend", e => e.currentTarget.classList.remove("bump"));
+document.getElementById("spendlive").onclick = () => openSpend();
 function renderSpend() {
   let m = document.getElementById("spendmodal");
   if (!m) {
@@ -1593,7 +1611,7 @@ function renderSpend() {
   if (!spendOpen) { m.classList.add("hide"); return; }
   const sum = rs => rs.reduce((a, r) => a + Number(r.cost_usd || 0), 0);
   const today = sum(spendRows("today")), week = sum(spendRows("week")), month = sum(spendRows("month")), all = sum(S.spend);
-  const rows = spendRows(spendPeriod);
+  const rows = spendRows(spendPeriod), last = S.spend[0];   // S.spend is newest first
   const byAgent = {};
   for (const r of rows) byAgent[r.agent] = (byAgent[r.agent] || 0) + Number(r.cost_usd || 0);
   const max = Math.max(1e-9, ...Object.values(byAgent), 0);
@@ -1615,6 +1633,7 @@ function renderSpend() {
     <div class="muted" style="font-size:13px">Real dollar cost of this team's Claude calls, since the mini PC switched to the pay-per-use API key.</div>
     <div class="spendtot"><div><b>$${today.toFixed(2)}</b><span>Today</span></div><div><b>$${week.toFixed(2)}</b><span>Last 7 days</span></div>
       <div><b>$${month.toFixed(2)}</b><span>Last 30 days</span></div><div><b>$${all.toFixed(2)}</b><span>Loaded (35 days)</span></div></div>
+    ${last ? `<div class="spendlast">Last call: <b>$${Number(last.cost_usd || 0).toFixed(2)}</b> by ${esc(modelName(last.agent))}, ${ago(last.at)}</div>` : ""}
     <div class="spendpre">Breakdown by agent: ${pbtn("today", "Today")}${pbtn("week", "7 days")}${pbtn("month", "30 days")}${pbtn("all", "All loaded")}</div>
     ${rows.length ? "" : `<p class="muted" style="margin:8px 0 0">No calls in this period.</p>`}${sorted.map(agentRow).join("")}
   </div>`;
@@ -2095,7 +2114,7 @@ function renderSchedule() {
     ${longformBlock(sc)}
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
-function renderAll() { renderCalEl(); if (calState.open) renderCalModal(); renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderSubs(); renderSubScreen(); renderAccounts(); renderScreens(); paintSeason(); }
+function renderAll() { renderCalEl(); if (calState.open) renderCalModal(); renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderSubs(); renderSubScreen(); renderAccounts(); renderScreens(); paintSeason(); renderSpendLive(); }
 
 // ---------- data ----------
 async function load() {
@@ -2154,6 +2173,7 @@ function subscribe() {
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); renderAccounts(); renderSubs(); syncMeeting(); } })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "credits" }, p => { S.credits.push(p.new); renderCredits(); })
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "spend" }, p => spendArrived(p.new))   // needs spend in the supabase_realtime publication (docs/notes/office.md)
     .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, p => {
       if (p.eventType === "DELETE") S.tasks = S.tasks.filter(x => x.id !== p.old.id); else upsert(S.tasks, p.new, "id"); renderTasks(); })
     .subscribe(status => {
@@ -2181,7 +2201,7 @@ async function start(session) {
   document.getElementById("signout").classList.toggle("hide", !session);
   for (const id of ["calbtn", "spendbtn", "modelsbtn", "wallcal"]) document.getElementById(id).disabled = !ok;   // belt and suspenders under .gated, and covers TV mode where .gated is hidden
   if (!ok) {
-    S.agents = new Map(); renderAll();
+    S.agents = new Map(); S.spend = []; renderAll();   // renderAll -> renderSpendLive hides the header $ chip
     document.getElementById("livetxt").textContent = session ? "This account can't view the office." : "Sign in to see the team.";
     return;
   }
@@ -2228,6 +2248,8 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
     ...(d < 3 ? [{ at: new Date(Date.now() - d * 86400000 - 5 * 3600000).toISOString(), agent: "lead", cost_usd: 0.4 + Math.random() * 0.4 },
                  { at: new Date(Date.now() - d * 86400000 - 5.5 * 3600000).toISOString(), agent: "developer", cost_usd: 0.3 + Math.random() * 0.3 }] : []),
   ]);
+  S.spend.sort((a, b) => b.at.localeCompare(a.at));   // newest first, like load()
+  if (QS.has("spend")) setInterval(() => spendArrived({ at: new Date().toISOString(), agent: "writer", cost_usd: 0.05 + Math.random() * 0.2 }), 8000);   // ?demo&spend: a made-up call every 8 s shows the live tick
   fetch("schedule.json").then(r => r.ok ? r.json() : null).then(j => { S.schedule = j; renderSchedule(); renderScreens(); }).catch(() => {});
   const alertsDemo = new URLSearchParams(location.search).get("demo") === "alerts";   // ?demo=alerts previews the warnings
   S.heartbeat = { scheduler: { at: new Date(Date.now() - (alertsDemo ? 45 : 3) * 60000).toISOString(), info: { disk_free_gb: 142.6 } },
@@ -2291,7 +2313,7 @@ setInterval(() => {
   if (S.selected) renderDetail();
   renderTvBar();
 }, 1000);
-setInterval(() => { renderToday(); renderRoster(); }, 60000);          // staleness + day rollover
+setInterval(() => { renderToday(); renderRoster(); renderSpendLive(); if (spendOpen) renderSpend(); }, 60000);   // staleness + day rollover + "Last call ... min ago"
 setInterval(() => { renderApprovals(); renderHealth(); }, 30000);      // countdowns + "mini PC alive" ageing
 requestAnimationFrame(draw);
 fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);                  // real Manila weather in the windows
