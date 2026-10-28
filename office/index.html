@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-28 23:06">
+<meta name="build" content="2026-10-28 23:24">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -93,8 +93,7 @@ main { max-width: 1480px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .spendrow.zero { opacity: .55; } .spendrow.zero .amt { color: var(--muted); }
 .spendpre { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
 .spendlast { font-size: 12.5px; color: var(--muted); margin: -4px 0 10px; } .spendlast b { color: var(--gold); }
-.spendlive { color: var(--gold); font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
-.spendlive.bump { animation: spendbump 1.5s ease-out; }
+#spendbtn.bump { animation: spendbump 1.5s ease-out; }   /* a new Claude call just landed - the $ lives in the Spending board now, not the header */
 @keyframes spendbump { 0% { background: rgba(255, 210, 90, .45); box-shadow: 0 0 12px var(--gold); } 100% { background: transparent; box-shadow: none; } }
 @media (max-width: 600px) { .spendtot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .mdlrow { gap: 6px; min-height: 32px; } .mdlrow .who small { display: none; }   /* phones: one line per agent, notes hidden */
@@ -330,7 +329,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
       <span id="pc" class="pcpill hide"><i></i><span></span></span>
       <span id="season" class="seasonpill"></span> <span id="wx" class="wxpill"></span></div>
   </div>
-  <div class="hdrctrl"><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan" disabled>📅</button> <span id="spendlive" class="spendlive hide" title="Claude spend today - click for details"></span> <button id="spendbtn"class="ghost" title="Claude spending" disabled>💰</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
+  <div class="hdrctrl"><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan" disabled>📅</button> <button id="spendbtn"class="ghost" title="Claude spending" disabled>💰</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
 </header>
 
 <div id="gate"><div class="box">
@@ -1325,7 +1324,9 @@ function agentPos(id, t) {
   if (w) return w;
   if (id === "producer" && effStatus(S.agents.get(id)) === "working") {    // the coordinator walks the newsroom floor
     const span = 180, p = (t / 22) % (span * 2), d = p < span ? p : span * 2 - p;
-    return { x: 36 + d, y: 96, walking: true };
+    return { x: 36 + d, y: 132, walking: true };   // below the desk row's own name tags (y 57, tag bottom ~127), not
+    // through them - at y:96 her walking figure passed under Pat/Wren/Luke/Eddie's tags and one would land on her
+    // face each time she crossed under their desk (the Boss's bug report, 2026-10-28, mobile screenshot)
   }
   return { x: c.x, y: c.y, walking: false };
 }
@@ -1590,17 +1591,12 @@ function spendSince(period) {   // "today" = the Manila calendar day (midnight P
   const d = SPEND_PERIODS[period]; return d === Infinity ? 0 : Date.now() - d * 86400000;
 }
 function spendRows(period) { const since = spendSince(period); return S.spend.filter(r => new Date(r.at).getTime() >= since); }
-function renderSpendLive(bump) {   // always-visible "$1.23 today" chip in the header; bump = a new call just arrived
-  const el = document.getElementById("spendlive");
-  const off = document.body.classList.contains("gated") || !S.spend.length;
-  el.classList.toggle("hide", off);
-  if (off) { el.textContent = ""; return; }
-  el.textContent = `$${spendRows("today").reduce((a, r) => a + Number(r.cost_usd || 0), 0).toFixed(2)} today`;
-  if (bump) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }   // reflow restarts the flash if two calls land close together
+function bumpSpendBtn() {   // a quick flash on the 💰 button when a new Claude call lands; the $ figures live in the Spending board, not the header
+  const el = document.getElementById("spendbtn");
+  el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");   // reflow restarts the flash if two calls land close together
 }
-function spendArrived(row) { S.spend.unshift(row); renderSpendLive(true); if (spendOpen) renderSpend(); }
-document.getElementById("spendlive").addEventListener("animationend", e => e.currentTarget.classList.remove("bump"));
-document.getElementById("spendlive").onclick = () => openSpend();
+function spendArrived(row) { S.spend.unshift(row); bumpSpendBtn(); if (spendOpen) renderSpend(); }
+document.getElementById("spendbtn").addEventListener("animationend", e => e.currentTarget.classList.remove("bump"));
 function renderSpend() {
   let m = document.getElementById("spendmodal");
   if (!m) {
@@ -2114,7 +2110,7 @@ function renderSchedule() {
     ${longformBlock(sc)}
     <div class="types"><div><h4>MORNING TYPES</h4>${group("morning")}</div><div><h4>EVENING TYPES</h4>${group("evening")}</div></div>`;
 }
-function renderAll() { renderCalEl(); if (calState.open) renderCalModal(); renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderSubs(); renderSubScreen(); renderAccounts(); renderScreens(); paintSeason(); renderSpendLive(); }
+function renderAll() { renderCalEl(); if (calState.open) renderCalModal(); renderRoster(); renderToday(); renderTasks(); renderRuns(); renderFeed(); renderSchedule(); renderApprovals(); renderHealth(); renderCredits(); renderSubs(); renderSubScreen(); renderAccounts(); renderScreens(); paintSeason(); }
 
 // ---------- data ----------
 async function load() {
@@ -2201,7 +2197,7 @@ async function start(session) {
   document.getElementById("signout").classList.toggle("hide", !session);
   for (const id of ["calbtn", "spendbtn", "modelsbtn", "wallcal"]) document.getElementById(id).disabled = !ok;   // belt and suspenders under .gated, and covers TV mode where .gated is hidden
   if (!ok) {
-    S.agents = new Map(); S.spend = []; renderAll();   // renderAll -> renderSpendLive hides the header $ chip
+    S.agents = new Map(); S.spend = []; renderAll();
     document.getElementById("livetxt").textContent = session ? "This account can't view the office." : "Sign in to see the team.";
     return;
   }
@@ -2313,7 +2309,7 @@ setInterval(() => {
   if (S.selected) renderDetail();
   renderTvBar();
 }, 1000);
-setInterval(() => { renderToday(); renderRoster(); renderSpendLive(); if (spendOpen) renderSpend(); }, 60000);   // staleness + day rollover + "Last call ... min ago"
+setInterval(() => { renderToday(); renderRoster(); if (spendOpen) renderSpend(); }, 60000);   // staleness + day rollover + "Last call ... min ago"
 setInterval(() => { renderApprovals(); renderHealth(); }, 30000);      // countdowns + "mini PC alive" ageing
 requestAnimationFrame(draw);
 fetchWeather(); setInterval(fetchWeather, 30 * 60 * 1000);                  // real Manila weather in the windows
