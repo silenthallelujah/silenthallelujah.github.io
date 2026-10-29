@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-28 23:51">
+<meta name="build" content="2026-10-29 11:09">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -329,7 +329,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
       <span id="pc" class="pcpill hide"><i></i><span></span></span>
       <span id="season" class="seasonpill"></span> <span id="wx" class="wxpill"></span></div>
   </div>
-  <div class="hdrctrl"><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan" disabled>📅</button> <button id="spendbtn"class="ghost" title="Claude spending" disabled>💰</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
+  <div class="hdrctrl"><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan" disabled>📅</button> <button id="spendbtn"class="ghost" title="Claude spending" disabled>💰</button> <button id="callsbtn" class="ghost" title="Call log: every Claude call, cost and tokens" disabled>🧾</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
 </header>
 
 <div id="gate"><div class="box">
@@ -1644,6 +1644,7 @@ function renderSpend() {
 function openSpend() { spendOpen = true; renderSpend(); }
 function closeSpend() { spendOpen = false; renderSpend(); document.getElementById("spendbtn")?.focus(); }
 document.getElementById("spendbtn").onclick = openSpend;
+document.getElementById("callsbtn").onclick = () => { location.href = "calls/" + location.search; };   // a full page, not a pop-up - the log is meant to grow without limit
 addEventListener("keydown", e => { if (e.key === "Escape" && spendOpen) closeSpend(); });
 if (QS.has("spend")) setTimeout(openSpend, 1500);   // preview: ?demo&spend opens the window
 
@@ -2137,8 +2138,8 @@ async function load() {
     if (!st.error) { S.vstats = {}; for (const r of st.data) if (!(r.key in S.vstats)) S.vstats[r.key] = r.metrics; }
   } catch (e) { /* the calendar just shows no view counts */ }
   try {                                  // Claude $ spend for the Spending window (never fatal - the rest of the office still loads)
-    const sp = await sb.from("spend").select("at,agent,cost_usd").gte("at", new Date(Date.now() - 35 * 86400000).toISOString())
-      .order("at", { ascending: false }).limit(8000);
+    const sp = await sb.from("spend").select("at,agent,cost_usd").eq("source", "pipeline")   // the full call log (incl. Claude Code dev sessions) has its own page, linked from the 🧾 button
+      .gte("at", new Date(Date.now() - 35 * 86400000).toISOString()).order("at", { ascending: false }).limit(8000);
     if (!sp.error) S.spend = sp.data;
   } catch (e) { /* the Spending window just shows nothing */ }
   renderAll();
@@ -2199,7 +2200,7 @@ async function start(session) {
   gate.style.display = ok ? "none" : "grid";
   document.body.classList.toggle("gated", !ok);   // public page: a full lock screen, not just the office scene, until the owner signs in
   document.getElementById("signout").classList.toggle("hide", !session);
-  for (const id of ["calbtn", "spendbtn", "modelsbtn", "wallcal"]) document.getElementById(id).disabled = !ok;   // belt and suspenders under .gated, and covers TV mode where .gated is hidden
+  for (const id of ["calbtn", "spendbtn", "callsbtn", "modelsbtn", "wallcal"]) document.getElementById(id).disabled = !ok;   // belt and suspenders under .gated, and covers TV mode where .gated is hidden
   if (!ok) {
     S.agents = new Map(); S.spend = []; renderAll();
     document.getElementById("livetxt").textContent = session ? "This account can't view the office." : "Sign in to see the team.";
@@ -2210,7 +2211,7 @@ async function start(session) {
 function demo() {        // ?demo: made-up statuses to preview the office without signing in (no real data)
   gate.style.display = "none";
   document.body.classList.remove("gated");
-  for (const id of ["calbtn", "spendbtn", "modelsbtn", "wallcal"]) document.getElementById(id).disabled = false;
+  for (const id of ["calbtn", "spendbtn", "callsbtn", "modelsbtn", "wallcal"]) document.getElementById(id).disabled = false;
   const names = { boss: ["Boss", "Owner (you)"], planner: ["Pat", "Planner"], writer: ["Wren", "Writer"], checker: ["Brother Luke", "Scripture Checker"],
     editor: ["Eddie", "Editor"], producer: ["Priya", "Producer (coordinator)"], narrator: ["Rusty", "Narrator"], renderer: ["Rex", "Renderer"],
     clerk: ["Clara", "Approval Clerk"], social: ["Sofia", "Social Manager"], strategist: ["Gabriel", "Growth Strategist"],

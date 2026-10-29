@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="build" content="dev">
+<title>Call Log - Silent Hallelujah Office</title>
+<link rel="icon" href="../../logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #14131c; --panel: #1e1c2a; --panel2: #262338; --ink: #ece8f6; --muted: #9a94b5; --line: #3a3552;
+  --gold: #f2c14e; --work: #5fd38d; --wait: #f2c14e; --idle: #7d8bb3; --err: #ff6b6b;
+  --pixel: "Press Start 2P", monospace; --body: "Inter", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--body); }
+a { color: var(--gold); }
+header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 2px solid var(--line); position: sticky; top: 0; z-index: 10; background: var(--bg); flex-wrap: wrap; }
+header img { width: 32px; height: 32px; border-radius: 50%; }
+header h1 { font: 12px/1.4 var(--pixel); margin: 0; letter-spacing: .5px; }
+header .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+header .grow { flex: 1; }
+.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: 6px; padding: 7px 11px; font: 600 12.5px var(--body); cursor: pointer; }
+.ghost:hover { border-color: var(--gold); }
+.back { color: var(--ink); text-decoration: none; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.back:hover { color: var(--gold); }
+main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+#gate { display: none; place-items: center; min-height: 60vh; }
+#gate .box { background: var(--panel); border: 2px solid var(--gold); border-radius: 8px; padding: 22px 26px; max-width: 360px; text-align: center; }
+#gate h3 { font: 11px var(--pixel); color: var(--gold); margin: 0 0 10px; }
+#gate .muted { color: var(--muted); font-size: 13px; }
+#gate button { margin-top: 14px; background: var(--gold); color: #1b1a24; border: none; border-radius: 6px; padding: 10px 16px; font-weight: 700; cursor: pointer; }
+.muted { color: var(--muted); }
+.totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.totcard { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.totcard h3 { font: 10px/1.3 var(--pixel); color: var(--muted); margin: 0 0 8px; letter-spacing: .5px; }
+.totcard .row { display: flex; justify-content: space-between; font-size: 13px; padding: 2px 0; }
+.totcard .row b { color: var(--gold); }
+.totcard .row.grand { border-top: 1px dashed var(--line); margin-top: 4px; padding-top: 6px; font-weight: 700; }
+@media (max-width: 760px) { .totals { grid-template-columns: 1fr; } }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.chip { background: var(--panel2); border: 1px solid var(--line); color: var(--ink); border-radius: 99px; padding: 6px 13px; font-size: 12.5px; cursor: pointer; }
+.chip.on { background: var(--gold); color: #1b1a24; border-color: var(--gold); font-weight: 700; }
+.filtersep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-size: 13px; }
+thead th { text-align: left; font: 600 10.5px var(--body); color: var(--muted); text-transform: uppercase; letter-spacing: .4px; padding: 9px 10px; border-bottom: 1px solid var(--line); background: var(--panel2); }
+tbody td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--panel2); }
+.src { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 99px; }
+.src.pipeline { background: #2d6a4f; color: #d8f3dc; }
+.src.claude_code { background: #4f5d8c; color: #e0e4fc; }
+.who { font-weight: 600; } .who .role { display: block; color: var(--muted); font-weight: 400; font-size: 11.5px; }
+.ctx { color: var(--muted); font-size: 12px; max-width: 260px; overflow-wrap: anywhere; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cost { color: var(--gold); font-weight: 700; }
+.when { white-space: nowrap; color: var(--muted); font-size: 12.5px; }
+#more { display: block; width: 100%; margin: 14px 0; padding: 12px; background: var(--panel); border: 1px solid var(--line); color: var(--ink); border-radius: 8px; cursor: pointer; font-weight: 600; }
+#more:hover { border-color: var(--gold); }
+#more:disabled { opacity: .5; cursor: default; }
+#empty, #loaderr { text-align: center; color: var(--muted); padding: 40px 10px; }
+#loaderr { color: var(--err); }
+.hide { display: none !important; }
+@media (max-width: 680px) {
+  .ctx { max-width: none; }
+  table, thead, tbody, tr, td { display: block; }
+  thead { display: none; }
+  tbody tr { border-bottom: 1px solid var(--line); padding: 10px; }
+  tbody td { border: none; padding: 2px 0; }
+  .num { text-align: left; }
+  .num::before { content: attr(data-label) ": "; color: var(--muted); }
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../">&larr;</a>
+  <img src="../../logo.png" alt="">
+  <div class="grow">
+    <h1>CALL LOG</h1>
+    <div class="sub" id="livetxt">Connecting&hellip;</div>
+  </div>
+  <button id="signout" class="ghost hide">Sign out</button>
+</header>
+
+<div id="gate"><div class="box">
+  <h3>STAFF ONLY</h3>
+  <p class="muted">Sign in with the channel email to see the call log.</p>
+  <p><b>silent.hallelujah.324@gmail.com</b></p>
+  <button id="login">Email me a sign-in link</button>
+  <p id="loginmsg" class="muted"></p>
+</div></div>
+
+<main id="app" class="hide">
+  <p class="muted" style="font-size:13px;margin-top:0">Every Claude call behind this project: the automated pipeline's own agents, and any Claude Code session
+    (anywhere on the mini PC) used to build or fix it. Pipeline cost is exact; Claude Code session cost is an estimate from its token counts.</p>
+
+  <div class="totals">
+    <div class="totcard"><h3>TODAY</h3><div id="tot-today"></div></div>
+    <div class="totcard"><h3>LAST 7 DAYS</h3><div id="tot-week"></div></div>
+    <div class="totcard"><h3>LAST 30 DAYS</h3><div id="tot-month"></div></div>
+  </div>
+
+  <div class="filters">
+    <button class="chip on" data-src="all">All sources</button>
+    <button class="chip" data-src="pipeline">Pipeline</button>
+    <button class="chip" data-src="claude_code">Claude Code</button>
+    <span class="filtersep"></span>
+    <button class="chip on" data-period="all">All time</button>
+    <button class="chip" data-period="today">Today</button>
+    <button class="chip" data-period="week">7 days</button>
+    <button class="chip" data-period="month">30 days</button>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th>When</th><th>Who</th><th>Model</th><th class="ctxcol">For</th>
+      <th style="text-align:right">In</th><th style="text-align:right">Out</th><th style="text-align:right">Cache</th><th style="text-align:right">Cost</th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <p id="empty" class="hide">No calls match these filters.</p>
+  <p id="loaderr" class="hide"></p>
+  <button id="more">Load more</button>
+</main>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+const SUPABASE_URL = "https://epeugxxeoadjlfqnjlyr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_c6CRjz1B0cvQXV-bFJoqKg_8wkL49Nh";
+const OWNER = "silent.hallelujah.324@gmail.com";
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const QS = new URLSearchParams(location.search), IS_DEMO = QS.has("demo");
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const manilaDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
+const phtClock = ms => { const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Manila", hour: "2-digit", minute: "2-digit",
+  hour12: true }).formatToParts(new Date(ms)); const g = t => p.find(x => x.type === t)?.value || "";
+  return `${g("hour")}:${g("minute")} ${g("dayPeriod")} PHT`; };
+const phtWhen = ms => { const d = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date(ms));
+  const wd = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", weekday: "short" }).format(new Date(ms));
+  return (d === manilaDay() ? "" : wd + " ") + phtClock(ms); };
+const fmtN = n => n == null ? "\u2013" : n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(n);
+const fmtCost = c => `$${Number(c || 0).toFixed(Number(c) < 0.01 && c > 0 ? 4 : 2)}`;
+
+const PAGE = 50;
+let state = { source: "all", period: "all", offset: 0, done: false, loading: false };
+
+function periodSince(period) {
+  if (period === "today") return new Date(manilaDay() + "T00:00:00+08:00").getTime();
+  const days = { week: 7, month: 30 }[period];
+  return days ? Date.now() - days * 86400000 : 0;
+}
+
+function demoRows() {
+  if (!demoRows.cache) demoRows.cache = Array.from({ length: 220 }, (_, i) => {
+    const code = i % 3 === 0;
+    return { at: new Date(Date.now() - i * 1800000).toISOString(), agent: code ? null : ["planner", "writer", "editor", "social"][i % 4],
+      role: code ? "Claude Code - D:\\SilentHallelujah" : ["Pat", "Wren", "Eddie", "Sofia"][i % 4],
+      model: ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"][i % 3], cost_usd: Number((0.02 + Math.random() * 0.6).toFixed(4)),
+      input_tokens: Math.floor(500 + Math.random() * 8000), output_tokens: Math.floor(100 + Math.random() * 1500),
+      cache_creation_tokens: Math.floor(Math.random() * 2000), cache_read_tokens: Math.floor(Math.random() * 15000),
+      context: code ? "fix(office): Priya's tag overlap" : "Writing today's script", source: code ? "claude_code" : "pipeline" };
+  });
+  return demoRows.cache;
+}
+
+async function fetchTotals() {
+  const since = ms => new Date(ms).toISOString();
+  const spans = { today: periodSince("today"), week: periodSince("week"), month: periodSince("month") };
+  for (const [key, from] of Object.entries(spans)) {
+    const el = document.getElementById(`tot-${key}`);
+    let data, err;
+    if (IS_DEMO) { data = demoRows().filter(r => Date.parse(r.at) >= from); }
+    else { const r = await sb.from("spend").select("cost_usd,source").gte("at", since(from)); data = r.data; err = r.error; }
+    if (err) { el.innerHTML = `<p class="muted" style="font-size:12px">${esc(err.message)}</p>`; continue; }
+    const by = { pipeline: 0, claude_code: 0 };
+    for (const row of data) by[row.source] = (by[row.source] || 0) + Number(row.cost_usd || 0);
+    const total = by.pipeline + by.claude_code;
+    el.innerHTML = `<div class="row"><span>Pipeline</span><b>${fmtCost(by.pipeline)}</b></div>
+      <div class="row"><span>Claude Code</span><b>${fmtCost(by.claude_code)}</b></div>
+      <div class="row grand"><span>Total</span><b>${fmtCost(total)}</b></div>`;
+  }
+}
+
+function rowHtml(r) {
+  const isCode = r.source === "claude_code";
+  const who = isCode ? (r.role || "Claude Code") : `${esc(r.agent || r.role || "")}${r.role && r.role !== r.agent ? `<span class="role">${esc(r.role)}</span>` : ""}`;
+  const cache = (Number(r.cache_creation_tokens) || 0) + (Number(r.cache_read_tokens) || 0);
+  return `<tr>
+    <td class="when">${esc(phtWhen(Date.parse(r.at)))}<div><span class="src ${r.source}">${isCode ? "Claude Code" : "Pipeline"}</span></div></td>
+    <td class="who">${isCode ? esc(who) : who}</td>
+    <td>${esc(r.model || "\u2013")}</td>
+    <td class="ctx ctxcol">${esc(r.context || "")}</td>
+    <td class="num" data-label="In">${fmtN(r.input_tokens)}</td>
+    <td class="num" data-label="Out">${fmtN(r.output_tokens)}</td>
+    <td class="num" data-label="Cache">${fmtN(cache)}</td>
+    <td class="num cost" data-label="Cost">${fmtCost(r.cost_usd)}</td>
+  </tr>`;
+}
+
+async function loadMore() {
+  if (state.loading || state.done) return;
+  state.loading = true;
+  const btn = document.getElementById("more"); btn.disabled = true; btn.textContent = "Loading\u2026";
+  document.getElementById("loaderr").classList.add("hide");
+  let data, error;
+  if (IS_DEMO) {
+    let filtered = demoRows();
+    if (state.source !== "all") filtered = filtered.filter(r => r.source === state.source);
+    const since = periodSince(state.period);
+    if (since) filtered = filtered.filter(r => Date.parse(r.at) >= since);
+    data = filtered.slice(state.offset, state.offset + PAGE);
+  } else {
+    let q = sb.from("spend").select("at,agent,role,model,cost_usd,input_tokens,output_tokens,cache_creation_tokens,cache_read_tokens,context,source")
+      .order("at", { ascending: false }).range(state.offset, state.offset + PAGE - 1);
+    if (state.source !== "all") q = q.eq("source", state.source);
+    const since = periodSince(state.period);
+    if (since) q = q.gte("at", new Date(since).toISOString());
+    ({ data, error } = await q);
+  }
+  state.loading = false; btn.disabled = false; btn.textContent = "Load more";
+  if (error) {
+    document.getElementById("loaderr").textContent = "Couldn't load more: " + error.message;
+    document.getElementById("loaderr").classList.remove("hide");
+    return;
+  }
+  const tbody = document.getElementById("rows");
+  tbody.insertAdjacentHTML("beforeend", data.map(rowHtml).join(""));
+  state.offset += data.length;
+  if (data.length < PAGE) { state.done = true; btn.classList.add("hide"); }
+  document.getElementById("empty").classList.toggle("hide", state.offset > 0);
+}
+
+function resetAndLoad() {
+  document.getElementById("rows").innerHTML = "";
+  document.getElementById("more").classList.remove("hide");
+  state.offset = 0; state.done = false;
+  loadMore();
+}
+
+document.querySelectorAll("[data-src]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("[data-src]").forEach(x => x.classList.toggle("on", x === b));
+  state.source = b.dataset.src; resetAndLoad();
+});
+document.querySelectorAll("[data-period]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("[data-period]").forEach(x => x.classList.toggle("on", x === b));
+  state.period = b.dataset.period; resetAndLoad();
+});
+document.getElementById("more").onclick = loadMore;
+
+document.getElementById("login").onclick = async () => {
+  const msg = document.getElementById("loginmsg");
+  msg.textContent = "Sending\u2026";
+  const { error } = await sb.auth.signInWithOtp({ email: OWNER, options: { emailRedirectTo: location.origin + location.pathname } });
+  msg.textContent = error ? "Couldn't send: " + error.message : "Check your email for the sign-in link.";
+};
+document.getElementById("signout").onclick = () => sb.auth.signOut();
+
+async function start(session) {
+  const ok = session?.user?.email?.toLowerCase() === OWNER;
+  document.getElementById("gate").style.display = ok ? "none" : "grid";
+  document.getElementById("app").classList.toggle("hide", !ok);
+  document.getElementById("signout").classList.toggle("hide", !ok);
+  if (!ok) { document.getElementById("livetxt").textContent = session ? "This account can't view the call log." : "Sign in to see the call log."; return; }
+  document.getElementById("livetxt").textContent = "Signed in";
+  await fetchTotals();
+  resetAndLoad();
+}
+
+if (IS_DEMO) {
+  document.getElementById("livetxt").textContent = "DEMO - made-up data";
+  document.getElementById("gate").style.display = "none";
+  document.getElementById("app").classList.remove("hide");
+  await fetchTotals();
+  resetAndLoad();
+} else {
+  sb.auth.onAuthStateChange((evt, session) => { if (evt === "SIGNED_IN" || evt === "SIGNED_OUT") start(session); });
+  start((await sb.auth.getSession()).data.session);
+}
+</script>
+</body>
+</html>
