@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-29 11:09">
+<meta name="build" content="2026-10-30 23:01">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -425,7 +425,7 @@ const CAST = {
   checker:  { x: 153, y: 36,  skin: "#f5d0a9", hair: "#8d6e63", shirt: "#6d4c41", prop: "bible", style: "tonsure", habit: true },
   editor:   { x: 213, y: 36,  skin: "#c68642", hair: "#2b2b2b", shirt: "#2a9d8f", prop: "redpen", style: "short", glasses: true, pen: "#c1121f" },
   // row moved up from y:57 (2026-10-28) to clear room for Priya below: her desk (drawDesk always extends to y+39)
-  // overlapped the NEWSROOM/STUDIO wall at y:126, and the Boss asked for the row to move, not her desk into the wall
+  // overlapped the SCRIPTORIUM/STUDIO wall at y:126, and the Boss asked for the row to move, not her desk into the wall
   producer: { x: 123, y: 108, skin: "#8d5524", hair: "#111", shirt: "#9b5de5", prop: "clipboard", style: "bun", blazer: "#6a3fb5" },
   boss:     { x: 384, y: 70,  skin: "#e0ac69", hair: "#2b2b2b", shirt: "#f2f2f2", prop: "boss", style: "side", tie: "#c1121f", blazer: "#2b2d42" },
   narrator: { x: 45,  y: 210, skin: "#f1c27d", hair: "#b5651d", shirt: "#8a5a44", prop: "mic", style: "short", phones: true, beard: true, plaid: "#6b3f2e" },
@@ -440,7 +440,7 @@ const CAST = {
   deployer:  { x: 390, y: 340, skin: "#c68642", hair: "#111", shirt: "#1d3557", prop: "deploy", style: "beanie", beanie: "#f77f00", blazer: "#ffd60a" },
 };
 const ROOMS = [
-  { name: "NEWSROOM", x: 0, y: 0, w: 297, h: 159, floor: ["#6d5a4b", "#655343"], wall: "#3d4a6b" },
+  { name: "SCRIPTORIUM", x: 0, y: 0, w: 297, h: 159, floor: ["#6d5a4b", "#655343"], wall: "#3d4a6b" },
   { name: "BOSS", x: 300, y: 0, w: 180, h: 159, floor: ["#7a2e3a", "#702a35"], wall: "#4a3b5c" },
   { name: "STUDIO", x: 0, y: 162, w: 189, h: 126, floor: ["#3b3f4a", "#353945"], wall: "#2c3e50" },
   { name: "FRONT DESK", x: 192, y: 162, w: 132, h: 126, floor: ["#8a7560", "#806c58"], wall: "#46604f" },
@@ -470,7 +470,7 @@ function effStatus(a) {
 }
 
 // ---------- drawing ----------
-const WINDOWS = { NEWSROOM: [15, 66], BOSS: [368, 434], STUDIO: [], "FRONT DESK": [], SOCIAL: [], SOFTWARE: [], MEETING: [487, 612] };   // front desk + software are inner rooms
+const WINDOWS = { SCRIPTORIUM: [15, 66], BOSS: [368, 434], STUDIO: [], "FRONT DESK": [], SOCIAL: [], SOFTWARE: [], MEETING: [487, 612] };   // front desk + software are inner rooms
 function disc(cx, cy, r, c) { for (let dy = -r; dy <= r; dy++) { const w = Math.round(Math.sqrt(r * r - dy * dy)); px(cx - w, cy + dy, 2 * w + 1, 1, c); } }
 function line(x0, y0, x1, y1, c) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1; for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, c); }
 function drawRoom(r, night, t) {
@@ -534,7 +534,7 @@ function drawSky(x, y, night, t) {                // 24x12 window pane
 function drawWalls() {
   const wall = "#1a1a24";
   px(297, 0, 3, 159, wall); px(0, 159, 480, 3, wall); px(189, 162, 3, 126, wall); px(324, 162, 3, 126, wall);
-  px(297, 90, 3, 28, "#6d5a4b");                                     // newsroom <-> Boss (side wall)
+  px(297, 90, 3, 28, "#6d5a4b");                                     // scriptorium <-> Boss (side wall)
   px(480, 0, 3, 417, wall);                                           // the tall meeting room's west wall, with three doorways
   [[125, "#702a35"], [193, "#5b6c8f"], [383, "#4a5a52"]].forEach(([y, floor]) => { px(480, y, 3, 32, floor); px(480, y - 2, 3, 2, "#5c3d2e"); px(480, y + 32, 3, 2, "#5c3d2e"); });   // Boss / Social / Software
   px(0, 288, 480, 3, wall);                                             // software row
@@ -585,7 +585,7 @@ function drawOurLady(x, y, t) {                 // statue of Our Lady: crown of 
   px(x + 18, y + 54, 6, 6, "#a8dadc"); px(x + 17, y + 50, 3, 4, "#ff8fab"); px(x + 21, y + 49, 3, 4, "#fdfdfd"); px(x + 19, y + 47, 3, 3, "#ffd60a");  // vase of flowers
 }
 function drawDecor(t) {
-  // NEWSROOM: stained glass, crucifix, whiteboard, bookshelf, water cooler, coffee machine, plant
+  // SCRIPTORIUM: stained glass, crucifix, whiteboard, bookshelf, water cooler, coffee machine, plant
   px(117, 1, 28, 19, "#2b2b2b");
   const glass = ["#c1121f", "#1d4e89", "#f2c14e", "#2d6a4f"];
   for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) px(119 + c * 6, 3 + r * 5, 5, 4, glass[(r + c) % 4]);
@@ -834,14 +834,14 @@ function handoffTarget(e) {
   return NEXT[e.agent] || null;
 }
 // Walks go room to room through the doorways. Points are a character's top-left; one pair per door (each side).
-const ROOM_OF = { planner: "NEWSROOM", writer: "NEWSROOM", checker: "NEWSROOM", editor: "NEWSROOM", producer: "NEWSROOM",
+const ROOM_OF = { planner: "SCRIPTORIUM", writer: "SCRIPTORIUM", checker: "SCRIPTORIUM", editor: "SCRIPTORIUM", producer: "SCRIPTORIUM",
                   boss: "BOSS", narrator: "STUDIO", renderer: "STUDIO", clerk: "FRONT DESK", social: "SOCIAL",
                   strategist: "SOCIAL",
                   lead: "SOFTWARE", developer: "SOFTWARE", tester: "SOFTWARE", deployer: "SOFTWARE" };
 const DOORS = [
-  ["NEWSROOM", "BOSS", [276, 86], [304, 86]],
-  ["NEWSROOM", "STUDIO", [94, 124], [94, 168]],
-  ["NEWSROOM", "FRONT DESK", [244, 124], [244, 168]],
+  ["SCRIPTORIUM", "BOSS", [276, 86], [304, 86]],
+  ["SCRIPTORIUM", "STUDIO", [94, 124], [94, 168]],
+  ["SCRIPTORIUM", "FRONT DESK", [244, 124], [244, 168]],
   ["BOSS", "SOCIAL", [336, 124], [336, 168]],
   ["BOSS", "MEETING", [456, 126], [490, 126]],
   ["SOCIAL", "MEETING", [452, 194], [490, 194]],
@@ -895,7 +895,7 @@ function idleTick(t) {
     // so a straight walk up to the coffee corner would cut right back through that row; she skips the coffee walk
     if (r < 0.45 && out < 2 && free.length && id !== "producer") {
       const spot = free[Math.floor(Math.random() * free.length)];
-      startWalk(id, spot, "NEWSROOM", "cup", 3500 + Math.random() * 3000);
+      startWalk(id, spot, "SCRIPTORIUM", "cup", 3500 + Math.random() * 3000);
     } else POSES.set(id, { pose: r < 0.75 ? "stretch" : "read", until: now + 2500 + Math.random() * 2500 });
   }
 }
@@ -1025,7 +1025,7 @@ function todaySeason() {                        // season, overridden by today's
 }
 function drawSeason(t) {
   const s = todaySeason();
-  // hanging banner on the newsroom wall, in the colour of the day
+  // hanging banner on the scriptorium wall, in the colour of the day
   px(187, 1, 16, 1, "#5c3d2e"); px(188, 2, 14, 15, s.color); px(188, 17, 3, 2, s.color); px(193, 17, 4, 3, s.color); px(199, 17, 3, 2, s.color);
   px(194, 5, 2, 9, "#fdfdfd"); px(191, 7, 8, 2, "#fdfdfd");
   if (s.key === "advent") {                     // Advent wreath on the front-desk counter: one candle per week
@@ -1037,7 +1037,7 @@ function drawSeason(t) {
       if (i < s.week) px(x + 3 + i * 5, y - 4 - ((t >> (7 + i)) & 1), 1, 2, "#ffb703");
     });
   }
-  if (s.key === "christmas") {                  // crib in the newsroom corner + tree in the Boss's office
+  if (s.key === "christmas") {                  // crib in the scriptorium corner + tree in the Boss's office
     px(8, 100, 30, 3, "#8d6e63"); px(10, 88, 26, 1, "#6d4c41"); px(9, 88, 2, 12, "#6d4c41"); px(35, 88, 2, 12, "#6d4c41");
     px(19, 94, 8, 5, "#e9c46a"); px(21, 92, 4, 3, "#f5d0a9"); px(13, 91, 4, 9, "#3a6ea5"); px(29, 91, 4, 9, "#8d6e63");
     px(21, 83, 3, 3, "#ffd60a");
@@ -1164,15 +1164,15 @@ function drawConfetti(dt) {
   }
 }
 const cheering = () => performance.now() < CHEER_UNTIL;
-const CAT = { x: 200, y: 120, tx: 200, ty: 120, dir: 1, rest: 0, room: "NEWSROOM" };
-const CAT_AREAS = { NEWSROOM: [20, 100, 250, 140], BOSS: [320, 100, 440, 140] };
+const CAT = { x: 200, y: 120, tx: 200, ty: 120, dir: 1, rest: 0, room: "SCRIPTORIUM" };
+const CAT_AREAS = { SCRIPTORIUM: [20, 100, 250, 140], BOSS: [320, 100, 440, 140] };
 function catTick(dt) {
   const night = !daytime();
   if (night) { CAT.tx = 395; CAT.ty = 128; }                     // curls up on the Boss's rug
   const dx = CAT.tx - CAT.x, dy = CAT.ty - CAT.y, d = Math.hypot(dx, dy);
   if (d < 1) {
     if (!night && performance.now() > CAT.rest) {                // pick the next spot, sometimes switching rooms
-      const room = Math.random() < 0.25 ? (CAT.x < 297 ? "BOSS" : "NEWSROOM") : (CAT.x < 297 ? "NEWSROOM" : "BOSS");
+      const room = Math.random() < 0.25 ? (CAT.x < 297 ? "BOSS" : "SCRIPTORIUM") : (CAT.x < 297 ? "SCRIPTORIUM" : "BOSS");
       const [x0, y0, x1, y1] = CAT_AREAS[room];
       CAT.tx = x0 + Math.random() * (x1 - x0); CAT.ty = y0 + Math.random() * (y1 - y0);
       CAT.rest = performance.now() + 3000 + Math.random() * 7000;
@@ -1326,7 +1326,7 @@ function drawMeetPerson(id, p, t) {
 function agentPos(id, t) {
   const c = CAST[id], w = meetPos(id, t) || walkPos(id, t);
   if (w) return w;
-  if (id === "producer" && effStatus(S.agents.get(id)) === "working") {    // the coordinator walks the newsroom floor
+  if (id === "producer" && effStatus(S.agents.get(id)) === "working") {    // the coordinator walks the scriptorium floor
     const span = 180, p = (t / 22) % (span * 2), d = p < span ? p : span * 2 - p;
     return { x: 36 + d, y: 132, walking: true };   // below the desk row's own name tags (y 57, tag bottom ~127), not
     // through them - at y:96 her walking figure passed under Pat/Wren/Luke/Eddie's tags and one would land on her
