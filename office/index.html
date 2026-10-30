@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-30 23:01">
+<meta name="build" content="2026-10-30 23:08">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -440,7 +440,10 @@ const CAST = {
   deployer:  { x: 390, y: 340, skin: "#c68642", hair: "#111", shirt: "#1d3557", prop: "deploy", style: "beanie", beanie: "#f77f00", blazer: "#ffd60a" },
 };
 const ROOMS = [
-  { name: "SCRIPTORIUM", x: 0, y: 0, w: 297, h: 159, floor: ["#6d5a4b", "#655343"], wall: "#3d4a6b" },
+  // "SCRIPTORIUM" runs past x:25 where the bookshelf (drawShelf(3,24,22,45)) sits, unlike the shorter old
+  // "NEWSROOM" label (2026-10-30): nudge just this room's label right of the shelf instead of moving the
+  // shelf itself (already tuned against the desk row/break corner). Plain floor from x:30 to the desk row at x:33.
+  { name: "SCRIPTORIUM", x: 0, y: 0, w: 297, h: 159, floor: ["#6d5a4b", "#655343"], wall: "#3d4a6b", label: [30, 24] },
   { name: "BOSS", x: 300, y: 0, w: 180, h: 159, floor: ["#7a2e3a", "#702a35"], wall: "#4a3b5c" },
   { name: "STUDIO", x: 0, y: 162, w: 189, h: 126, floor: ["#3b3f4a", "#353945"], wall: "#2c3e50" },
   { name: "FRONT DESK", x: 192, y: 162, w: 132, h: 126, floor: ["#8a7560", "#806c58"], wall: "#46604f" },
@@ -1402,7 +1405,9 @@ function draw(t) {
 
 // ---------- HTML overlay: room names, name tags, speech bubbles ----------
 const pct = (v, total) => `${(v / total) * 100}%`;
-ROOMS.forEach(r => { const d = document.createElement("div"); d.className = "room"; d.textContent = r.name; d.style.left = pct(r.x + 4, W); d.style.top = pct(r.y + 24, H); overlay.append(d); });
+ROOMS.forEach(r => { const d = document.createElement("div"); d.className = "room"; d.textContent = r.name;
+  const [lx, ly] = r.label || [4, 24];
+  d.style.left = pct(r.x + lx, W); d.style.top = pct(r.y + ly, H); overlay.append(d); });
 // wall screens: HTML laid over the canvas so the text stays sharp
 const tvEl = document.createElement("div"), wbEl = document.createElement("div");
 tvEl.className = "tv"; wbEl.className = "wb";
