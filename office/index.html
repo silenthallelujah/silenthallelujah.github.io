@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-10-30 23:08">
+<meta name="build" content="2026-11-01 16:42">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,7 +13,7 @@
 <style>
 :root {
   --bg: #14131c; --panel: #1e1c2a; --panel2: #262338; --ink: #ece8f6; --muted: #9a94b5; --line: #3a3552;
-  --gold: #f2c14e; --work: #5fd38d; --wait: #f2c14e; --idle: #7d8bb3; --err: #ff6b6b; --off: #555;
+  --gold: #f2c14e; --work: #5fd38d; --wait: #f2c14e; --idle: #7d8bb3; --err: #ff6b6b; --off: #555; --watch: #5bb8d9;
   --pixel: "Press Start 2P", monospace; --body: "Inter", system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
@@ -286,14 +286,14 @@ details summary { cursor: pointer; font: 9px/2 var(--pixel); color: var(--muted)
 .bhead h2 { margin: 0; flex: 1; }
 .chip { font: 600 12px var(--body); background: var(--panel2); color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; cursor: pointer; }
 .chip.on { background: var(--gold); color: #1b1a24; border-color: var(--gold); }
-.cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.cols { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; align-items: start; }
 @media (max-width: 900px) { .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .cols { grid-template-columns: minmax(0, 1fr); } }
 .kcol { background: var(--panel2); border-radius: 6px; padding: 8px; min-height: 60px; }
 .kcol h3 { font: 9px/1.8 var(--pixel); margin: 2px 4px 8px; display: flex; justify-content: space-between; }
 .kcol h3 span { color: var(--muted); }
 .kcard { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--idle); border-radius: 5px; padding: 8px 9px; margin-bottom: 8px; }
-.kcard.s-doing { border-left-color: var(--work); } .kcard.s-waiting { border-left-color: var(--wait); } .kcard.s-done { border-left-color: #4a5a4f; opacity: .92; }
+.kcard.s-doing { border-left-color: var(--work); } .kcard.s-watching { border-left-color: var(--watch); } .kcard.s-waiting { border-left-color: var(--wait); } .kcard.s-done { border-left-color: #4a5a4f; opacity: .92; }
 .kcard .top { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 4px; }
 .kcard .ti { font-weight: 600; margin-bottom: 4px; overflow-wrap: anywhere; }
 .kcard .de { color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
@@ -1790,7 +1790,7 @@ function renderToday() {
 function renderTasks() {
   const open = S.tasks.filter(t => t.status !== "done").sort((a, b) => a.num - b.num);
   const row = t => `<div class="todo compact" title="${esc(t.detail)}"><span class="num">#${t.num}</span>${esc(t.title)}
-      <span class="pill st-${t.status === "doing" ? "working" : t.status === "waiting" ? "waiting" : "idle"}">${esc(t.status)}</span></div>`;
+      <span class="pill st-${["doing", "watching"].includes(t.status) ? "working" : t.status === "waiting" ? "waiting" : "idle"}">${esc(t.status)}</span></div>`;
   const mine = open.filter(t => t.owner === "You"), claude = open.filter(t => t.owner === "Claude");
   const boss = S.agents.get("boss");
   const extra = boss?.status === "waiting" ? `<div class="todo"><div class="t">${esc(boss.activity)} <span class="pill st-waiting">now</span></div></div>` : "";
@@ -1799,11 +1799,12 @@ function renderTasks() {
   renderBoard();
 }
 const BOARD = { owner: "all", allDone: false, DONE_SHOWN: 8 };
-const COLS = [["backlog", "BACKLOG"], ["doing", "IN PROGRESS"], ["waiting", "WAITING"], ["done", "DONE"]];
+const COLS = [["backlog", "BACKLOG"], ["doing", "IN PROGRESS"], ["watching", "WATCHING"], ["waiting", "WAITING"], ["done", "DONE"]];
 function renderBoard() {
   const tasks = S.tasks.filter(t => BOARD.owner === "all" || t.owner === BOARD.owner);
   const wagent = t => {                          // who is actively on this card right now, and what they're doing (reviewing/
-    if (t.status !== "doing" || !t.agent) return "";   // developing/narrating ...) - only while it's really being worked, not while idle/waiting/done
+    if (!["doing", "watching"].includes(t.status) || !t.agent) return "";   // developing/narrating/watching ...) -
+    // only while it's really being worked (or watched) on, not while idle/waiting/done
     const a = S.agents.get(t.agent);
     return `<div class="wagent"><img src="${portrait(t.agent)}" alt="">
       <b>${esc(a?.name || t.agent)}</b>${t.activity ? `<span class="act">— ${esc(t.activity)}</span>` : ""}</div>`;
@@ -2240,6 +2241,8 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   }
   S.tasks = [{ id: "d1", num: 1, title: "Demo task waiting on you", detail: "Example only.", area: "Publishing", owner: "You", status: "waiting", sort: 1 },
              { id: "d2", num: 2, title: "Demo task for Claude", detail: "Example only.", area: "Visuals", owner: "Claude", status: "doing", sort: 1, agent: "developer", activity: "Writing the fix" },
+             { id: "d0", num: 0, title: "Demo growth experiment, being watched", detail: "Example only.", area: "Channel", owner: "You",
+               status: "watching", sort: 1, agent: "strategist", activity: "Watching this week's numbers" },
              ...Array.from({ length: 11 }, (_, k) => ({ id: "d" + (k + 3), num: k + 3, title: `Demo finished task ${k + 3}`, detail: "Example only.",
                area: "Infrastructure", owner: k % 2 ? "You" : "Claude", status: "done", done_on: `2026-09-${String(20 + (k % 9)).padStart(2, "0")}`, sort: k })),
              { id: "d20", num: 20, title: "Demo backlog idea", detail: "Example only.", area: "Channel", owner: "You", status: "backlog", sort: 2 },
