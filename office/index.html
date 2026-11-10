@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-11-01 16:42">
+<meta name="build" content="2026-11-10 19:49">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -829,11 +829,11 @@ function handoffTarget(e) {
   if (e.agent === "editor" && m.startsWith("asked wren")) return "writer";   // editor wants changes
   if (e.agent === "clerk") return m.includes("sofia") ? "social" : m.includes("wren") ? "writer" : "boss";
   if (e.agent === "producer" && m.includes("software team")) return "lead";     // Priya escalates a problem
-  if (e.agent === "lead") return m.includes("devin") ? "developer" : m.includes("boss") ? "boss" : null;
+  if (e.agent === "lead") return m.includes("devin") ? "developer" : (m.includes("boss") || m.includes("nimrod")) ? "boss" : null;
   if (e.agent === "developer") return m.includes("joseph") ? "lead" : "tester";   // stuck -> asks Joseph
   if (e.agent === "tester") return m.includes("devin") ? "developer" : "lead";
   if (e.agent === "social" && m.includes("gabriel")) return "strategist";        // Sofia -> Gabriel (same room)
-  if (e.agent === "strategist") return m.includes("boss") ? "boss" : "social";   // Gabriel -> Boss (via SOCIAL door) or Sofia
+  if (e.agent === "strategist") return (m.includes("boss") || m.includes("nimrod")) ? "boss" : "social";   // Gabriel -> Boss (via SOCIAL door) or Sofia
   return NEXT[e.agent] || null;
 }
 // Walks go room to room through the doorways. Points are a character's top-left; one pair per door (each side).
@@ -935,13 +935,13 @@ function ambientLine(id) {
     case "producer": return todayRuns.some(Boolean) || S.schedule?.grid ? `Today: ☀ ${lab(todayRuns[0]?.format || S.schedule?.grid?.morning?.[wd(day)])} · ☾ ${lab(todayRuns[1]?.format || S.schedule?.grid?.evening?.[wd(day)])}` : "";
     case "narrator": { const c = S.credits?.[S.credits.length - 1]; return c ? `${(c.total - c.used).toLocaleString()} voice credits left` : ""; }
     case "renderer": return week.length ? `${week.length} videos rendered this week` : "";
-    case "clerk": { const n = runs.filter(r => r.stage === "awaiting_approval").length; return n ? `${n} waiting for the Boss` : "Nothing waiting for the Boss"; }
+    case "clerk": { const n = runs.filter(r => r.stage === "awaiting_approval").length; return n ? `${n} waiting for Nimrod` : "Nothing waiting for Nimrod"; }
     case "social": return week.length ? `${week.length} videos posted this week` : "";
     case "strategist": return yv.length ? `Yesterday: ${yv.reduce((a, b) => a + Number(b), 0).toLocaleString()} YouTube views` : "";
     case "lead": return sw.length ? `${open.length} open ticket${open.length === 1 ? "" : "s"}` : "";
     case "developer": { const d = sw.filter(t => t.status === "done").sort((a, b) => (b.done_on || "").localeCompare(a.done_on || ""))[0]; return d ? `Last shipped: #${d.num}` : ""; }
     case "tester": return sw.some(t => t.status === "doing") ? "A fix is in progress" : "No fixes in progress";
-    case "deployer": { const w = sw.filter(t => t.status === "waiting").length; return w ? `${w} waiting for the Boss's tap` : "Nothing waiting to deploy"; }
+    case "deployer": { const w = sw.filter(t => t.status === "waiting").length; return w ? `${w} waiting for Nimrod's tap` : "Nothing waiting to deploy"; }
   }
   return "";
 }
@@ -1694,7 +1694,7 @@ for (const id of Object.keys(CAST)) {
 }
 // Hover = the person's job scope (what they are responsible for). Keep in step with CLAUDE.md / swteam.py.
 const SCOPE = {
-  boss: "The Boss (you). Approves every finished video in Telegram (Approve / Request changes / Reject), decides what we make and when, taps Approve on software fixes and plans, and finishes the TikTok drafts and personal-profile posts by hand.",
+  boss: "Nimrod (you). Approves every finished video in Telegram (Approve / Request changes / Reject), decides what we make and when, taps Approve on software fixes and plans, and finishes the TikTok drafts and personal-profile posts by hand.",
   planner: "Planner. Each morning reads the day's Mass readings and liturgical calendar and decides the video's format, theme, Scripture reference and mood. Follows the weekly grid in schedule.json and only overrides it for feasts and seasons. For Bible stories the next story comes from the series list.",
   writer: "Writer. Writes the script (600-900 characters) in a calm Catholic voice, quoting only the Douay-Rheims. Also writes the Facebook companion texts, the Bible-story beats and picture descriptions, and the long-form psalm meditations. Fixes whatever Luke and Eddie send back.",
   checker: "Scripture Checker. Verifies every quotation word for word against the Douay-Rheims, and checks psalm and mystery numbers, damaged source text, doubled words and that traditional prayers are complete. Sends a draft back to Wren until it is right.",
@@ -1766,7 +1766,7 @@ function say(id, text, day) {
 const STEPS = [
   ["planning", "Plan the video", "Pat"], ["writing", "Write + check Scripture", "Wren, Brother Luke, Eddie"],
   ["narrating", "Record narration", "Rusty"], ["rendering", "Render the video", "Rex"],
-  ["awaiting_approval", "Your approval", "Boss"], ["scheduled", "Schedule posts", "Sofia"], ["published", "Live everywhere", "Sofia"],
+  ["awaiting_approval", "Your approval", "Nimrod"], ["scheduled", "Schedule posts", "Sofia"], ["published", "Live everywhere", "Sofia"],
 ];
 const STAGE_INDEX = { planning: 0, writing: 1, revising: 1, narrating: 2, rendering: 3, awaiting_approval: 4, approved: 5, rejected: 4, scheduled: 6, published: 7 };
 function renderToday() {
@@ -2218,14 +2218,14 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   gate.style.display = "none";
   document.body.classList.remove("gated");
   for (const id of ["calbtn", "spendbtn", "callsbtn", "modelsbtn", "wallcal"]) document.getElementById(id).disabled = false;
-  const names = { boss: ["Boss", "Owner (you)"], planner: ["Pat", "Planner"], writer: ["Wren", "Writer"], checker: ["Brother Luke", "Scripture Checker"],
+  const names = { boss: ["Nimrod", "Owner (you)"], planner: ["Pat", "Planner"], writer: ["Wren", "Writer"], checker: ["Brother Luke", "Scripture Checker"],
     editor: ["Eddie", "Editor"], producer: ["Priya", "Producer (coordinator)"], narrator: ["Rusty", "Narrator"], renderer: ["Rex", "Renderer"],
     clerk: ["Clara", "Approval Clerk"], social: ["Sofia", "Social Manager"], strategist: ["Gabriel", "Growth Strategist"],
     lead: ["Joseph", "Lead Engineer"], developer: ["Devin", "Developer"], tester: ["Tess", "Tester"], deployer: ["Dex", "Deployer"] };
   const script = [["planner", "working", "Reading today's Mass readings"], ["writer", "working", "Writing draft 1"],
     ["checker", "working", "Checking quotes against the Douay-Rheims"], ["editor", "working", "Reviewing draft 1"],
     ["narrator", "working", "Recording the narration"], ["renderer", "working", "Rendering the video"],
-    ["clerk", "waiting", "Waiting for the Boss to approve"], ["social", "working", "Posting the Instagram Reel"],
+    ["clerk", "waiting", "Waiting for Nimrod to approve"], ["social", "working", "Posting the Instagram Reel"],
     ["strategist", "working", "Reviewing last week's numbers"],
     ["producer", "working", "Escalated to the software team: Demo run failed (#99)"], ["lead", "working", "Investigating #99"],
     ["developer", "working", "Building #99"], ["tester", "working", "Testing #99"], ["deployer", "working", "Deploying #99"]];
