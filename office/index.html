@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-11-20 22:11">
+<meta name="build" content="2026-11-20 22:24">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -56,6 +56,10 @@ main { max-width: 1480px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .cfbtns .cfok { background: var(--gold); border-color: #ffd27a; color: #1b1a24; }
 .cfbtns .cfok:hover, .cfbtns .cfok:focus-visible { background: #ffd27a; color: #1b1a24; box-shadow: 0 0 0 2px rgba(242,193,78,.35); }
 .aapill.on { background: #f2b33d; border-color: #ffd27a; color: #1b1a24; animation: aapulse 2s ease-in-out infinite; }
+/* Auto-Fix pill: display only (switched with /autofix in Telegram); owner correction 2026-11-20 - not "auto-fix ON" text in the Mini PC pill */
+.afpill { margin-left: 8px; font: 600 12px var(--body); padding: 2px 9px; border-radius: 999px; white-space: nowrap; border: 1px solid; cursor: default; }
+.afpill.on { background: rgba(91,184,217,.16); border-color: var(--watch); color: #cdeaf5; }
+.afpill.off { background: rgba(125,139,179,.14); border-color: var(--idle); color: #c6cce0; }
 @keyframes aapulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(242,179,61,.7); } 50% { box-shadow: 0 0 0 6px rgba(242,179,61,0); } }
 #alerts { max-width: 1180px; margin: 12px auto 0; padding: 0 16px; }
 #alerts .al { background: #3a1518; border: 2px solid var(--err); color: #ffd6d6; border-radius: 6px; padding: 9px 12px; margin-bottom: 8px; font-size: 13.5px; }
@@ -343,6 +347,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
     <div class="sub"><span class="hdrchip"><span id="live"></span><span id="livetxt">Connecting…</span></span>
       <span id="pc" class="pcpill hide"><i></i><span></span></span>
       <span id="aa" class="aapill hide" role="button" tabindex="0"></span>
+      <span id="af" class="afpill hide"></span>
       <span id="season" class="seasonpill"></span> <span id="wx" class="wxpill"></span></div>
   </div>
   <div class="hdrctrl"><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan" disabled>📅</button> <button id="spendbtn"class="ghost" title="Claude spending" disabled>💰</button> <button id="callsbtn" class="ghost" title="Call log: every Claude call, cost and tokens" disabled>🧾</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
@@ -2088,6 +2093,23 @@ async function toggleAutoApprove() {
   aaMsg = msg; renderAutoApprove(); renderApprovals();
   clearTimeout(aaMsgTimer); aaMsgTimer = setTimeout(() => { aaMsg = ""; renderAutoApprove(); }, 4000);
 }
+// Live backup (2026-11-20): a phone or background tab drops the realtime connection without saying so, and a change made in
+// Telegram then only showed after a page refresh. So: re-read the one setting row every 5 s while the page is visible, and
+// at once when it comes back to the front (after a longer absence reload everything, like a reconnect does).
+let aaBusy = false, hiddenAt = 0;
+async function refreshAutoApprove() {
+  if (IS_DEMO || aaBusy || document.hidden || document.body.classList.contains("gated")) return;
+  aaBusy = true;
+  const before = S.autoapprove;
+  try { await loadAutoApprove(); } finally { aaBusy = false; }
+  if (S.autoapprove !== before) { renderAutoApprove(); renderApprovals(); }
+}
+setInterval(refreshAutoApprove, 5000);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (document.body.classList.contains("gated") || IS_DEMO) return;
+  if (hiddenAt && Date.now() - hiddenAt > 60000) load().catch(showError); else refreshAutoApprove();
+});
 document.getElementById("aa").addEventListener("click", toggleAutoApprove);
 document.getElementById("aa").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleAutoApprove(); } });
 function renderApprovals() {
@@ -2120,9 +2142,13 @@ function renderHealth() {
   pc.title = `Scheduler: ${hb("scheduler") ? ago(hb("scheduler").at) : "never"} · Telegram listener: ${hb("listener") ? ago(hb("listener").at) : "never"}`
     + (hb("scheduler")?.info?.disk_free_gb != null ? ` · ${hb("scheduler").info.disk_free_gb} GB free` : "");
   const autofix = hb("listener")?.info?.autofix;   // #388: display only - switched with /autofix in Telegram, never here
-  if (autofix != null) {
-    pc.lastElementChild.textContent += ` · auto-fix ${autofix ? "ON" : "off"}`;
-    pc.title += " · Auto-fix: bug fixes are merged without a tap (/autofix in Telegram)";
+  const af = document.getElementById("af");
+  if (autofix == null) af.classList.add("hide");
+  else {                                           // its own Title Case pill (owner correction 2026-11-20)
+    af.className = `afpill ${autofix ? "on" : "off"}`;
+    af.textContent = autofix ? "🛠 Auto-Fix: On" : "🛠 Auto-Fix: Off";
+    af.title = autofix ? "Bug fixes from the software team are merged without your tap. Switch with /autofix in Telegram."
+      : "Bug fixes wait for your tap before they are merged. Switch with /autofix in Telegram.";
   }
   renderAutoApprove();
   if (sch > HB_STALE_MS) alerts.push(["", `<b>The mini PC hasn't checked in for ${sch === Infinity ? "a long time" : span(sch)}.</b>
@@ -2350,7 +2376,7 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   fetch("schedule.json").then(r => r.ok ? r.json() : null).then(j => { S.schedule = j; renderSchedule(); renderScreens(); }).catch(() => {});
   const alertsDemo = new URLSearchParams(location.search).get("demo") === "alerts";   // ?demo=alerts previews the warnings
   S.heartbeat = { scheduler: { at: new Date(Date.now() - (alertsDemo ? 45 : 3) * 60000).toISOString(), info: { disk_free_gb: 142.6 } },
-                  listener: { at: new Date().toISOString(), info: { autoapprove: QS.has("autoapprove") } },   // ?demo&autoapprove previews the On pill
+                  listener: { at: new Date().toISOString(), info: { autoapprove: QS.has("autoapprove"), autofix: !QS.has("noautofix") } },   // ?demo&autoapprove previews the On pill
                   subscribers: { at: new Date(Date.now() - 6 * 60000).toISOString(), info: { counts: { youtube: 22, facebook: 8, instagram: 5, tiktok: null }, today: { youtube: 1, facebook: 0, instagram: 0 }, week: { youtube: 3, facebook: 2, instagram: 1 } } },
                   connections: { at: new Date(Date.now() - 20 * 60000).toISOString(), info: {
                     youtube: { ok: true, detail: "channel: Silent Hallelujah (demo)" },
