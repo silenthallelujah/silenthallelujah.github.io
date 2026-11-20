@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-11-10 19:49">
+<meta name="build" content="2026-11-20 21:51">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,6 +42,11 @@ main { max-width: 1480px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 .pcpill { margin-left: 10px; font-size: 12px; } .pcpill i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
 .pcpill.ok i { background: var(--work); } .pcpill.warn i { background: var(--wait); } .pcpill.bad i { background: var(--err); box-shadow: 0 0 8px var(--err); }
 .pcpill.bad { color: var(--err); font-weight: 600; }
+/* Auto-Approve (#700): its own pill so it stands out - amber + pulse while videos publish without review */
+.aapill { margin-left: 8px; font: 600 12px var(--body); padding: 2px 9px; border-radius: 999px; cursor: pointer; white-space: nowrap; border: 1px solid; }
+.aapill.off { background: rgba(80,160,100,.16); border-color: #5aa06a; color: #bfe5c8; }
+.aapill.on { background: #f2b33d; border-color: #ffd27a; color: #1b1a24; animation: aapulse 2s ease-in-out infinite; }
+@keyframes aapulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(242,179,61,.7); } 50% { box-shadow: 0 0 0 6px rgba(242,179,61,0); } }
 #alerts { max-width: 1180px; margin: 12px auto 0; padding: 0 16px; }
 #alerts .al { background: #3a1518; border: 2px solid var(--err); color: #ffd6d6; border-radius: 6px; padding: 9px 12px; margin-bottom: 8px; font-size: 13.5px; }
 #alerts .al b { color: #fff; } #alerts .al.warn { background: #3a2f12; border-color: var(--wait); color: #ffeab0; }
@@ -327,6 +332,7 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
     <h1>SILENT HALLELUJAH OFFICE</h1>
     <div class="sub"><span class="hdrchip"><span id="live"></span><span id="livetxt">Connecting…</span></span>
       <span id="pc" class="pcpill hide"><i></i><span></span></span>
+      <span id="aa" class="aapill hide" role="button" tabindex="0"></span>
       <span id="season" class="seasonpill"></span> <span id="wx" class="wxpill"></span></div>
   </div>
   <div class="hdrctrl"><div id="clock"></div><button id="calbtn" class="ghost" title="Monthly video plan" disabled>📅</button> <button id="spendbtn"class="ghost" title="Claude spending" disabled>💰</button> <button id="callsbtn" class="ghost" title="Call log: every Claude call, cost and tokens" disabled>🧾</button> <button id="tvbtn" class="ghost" title="TV mode: full-screen office">📺</button> <button id="sound" class="ghost" title="Sound cues">🔇</button> <button id="signout" class="ghost hide">Sign out</button></div>
@@ -459,7 +465,7 @@ const px = (x, y, w, h, c) => { G.fillStyle = c; G.fillRect(Math.round(x), Math.
 
 // ---------- state ----------
 const S = { agents: new Map(), events: [], runs: [], tasks: [], schedule: null, heartbeat: {}, approvalAlert: null, credits: [],
-            spend: [], selected: null, bubbles: new Map() };
+            spend: [], selected: null, bubbles: new Map(), autoapprove: null };
 const STATUS_COLOR = { working: "var(--work)", waiting: "var(--wait)", idle: "var(--idle)", error: "var(--err)", offline: "var(--off)" };
 const STALE_MS = 25 * 60 * 1000;
 const manilaDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
@@ -2006,6 +2012,49 @@ function goLiveMs(key) {                        // video key -> go-live epoch ms
 }
 const LEAD_MS = 15 * 60 * 1000;                 // YouTube/Facebook need 15 min to schedule
 const span = ms => { const m = Math.max(0, Math.round(ms / 60000)); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} m` : `${m} min`; };
+// ---------- Auto-Approve (#700): office_settings row 'autoapprove' (falls back to the listener heartbeat) ----------
+const AA_GRACE_MS = 30 * 60 * 1000;             // autoapprove.GRACE_MIN
+let aaMsg = "", aaMsgTimer = null;
+function aaOn() {
+  const v = S.autoapprove ?? S.heartbeat.listener?.info?.autoapprove;
+  return v == null ? null : !!v;
+}
+function aaWhen(r, live) {                      // preview sent + 30 min, or the 'Approve by' deadline, whichever is earlier
+  const sent = r.approval_sent_at ? new Date(r.approval_sent_at).getTime() : NaN;
+  return isNaN(sent) ? null : Math.min(sent + AA_GRACE_MS, live - LEAD_MS);   // null: sent time unknown, keep 'Approve by'
+}
+async function loadAutoApprove() {
+  if (IS_DEMO) return;
+  try {
+    const r = await sb.from("office_settings").select("value").eq("key", "autoapprove").maybeSingle();
+    if (!r.error && r.data) S.autoapprove = !!r.data.value?.on;
+  } catch (e) { /* table not there yet: the heartbeat fallback is used */ }
+}
+function renderAutoApprove() {
+  const el = document.getElementById("aa"), on = aaOn();
+  if (on == null && !IS_DEMO) { el.classList.add("hide"); return; }
+  el.className = `aapill ${on ? "on" : "off"}`;
+  el.textContent = aaMsg || (on ? "⚡ Auto-Approve: On" : "✔ Auto-Approve: Off · You Approve Each Video");
+  el.title = on ? "Finished videos that pass the video check publish without your tap 30 minutes after the preview. Click to turn it Off."
+    : "Every video waits for your Approve tap in Telegram. Click to turn Auto-Approve On.";
+}
+async function toggleAutoApprove() {
+  const next = !aaOn();
+  if (!confirm(next ? "Turn Auto-Approve On? Finished videos will publish without your tap after 30 minutes."
+    : "Turn Auto-Approve Off? Every video will wait for your Approve tap again.")) return;
+  let msg;
+  if (IS_DEMO) { S.autoapprove = next; msg = "Demo - not saved"; }
+  else {
+    const r = await sb.from("office_settings").upsert({ key: "autoapprove", value: { on: next, since: new Date().toISOString(), by: "dashboard" },
+      updated_at: new Date().toISOString(), updated_by: "dashboard" });
+    if (!r.error) S.autoapprove = next;
+    msg = r.error ? "NOT saved: " + r.error.message : "Saved";
+  }
+  aaMsg = msg; renderAutoApprove(); renderApprovals();
+  clearTimeout(aaMsgTimer); aaMsgTimer = setTimeout(() => { aaMsg = ""; renderAutoApprove(); }, 4000);
+}
+document.getElementById("aa").addEventListener("click", toggleAutoApprove);
+document.getElementById("aa").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleAutoApprove(); } });
 function renderApprovals() {
   const el = document.getElementById("approvals");
   if (!el) return;
@@ -2013,12 +2062,12 @@ function renderApprovals() {
   const pending = S.runs.filter(r => r.stage === "awaiting_approval" && !/^test-/.test(r.day))
     .map(r => ({ r, live: goLiveMs(r.day) })).sort((a, b) => a.live - b.live);
   el.innerHTML = pending.map(({ r, live }) => {
-    const left = live - LEAD_MS - now, evening = r.day.endsWith("-pm");
+    const left = live - LEAD_MS - now, evening = r.day.endsWith("-pm"), aa = aaOn() ? aaWhen(r, live) : null;
     const cls = left <= 0 ? "red" : left < 3600000 ? "red" : left < 3 * 3600000 ? "amber" : "";
     const cd = left > 0 ? `APPROVE WITHIN ${span(left).toUpperCase()}` : "LATE - POSTS AS SOON AS YOU APPROVE";
     return `<div class="appr ${cls}"><img class="av big" src="${portrait("clerk")}" alt="" title="Clara is waiting for your approval">
       <div><div class="cd">${cd}</div>${evening ? "🌙 Evening" : "☀️ Morning"}: <b>${esc(r.title || "untitled")}</b>
-      <div class="muted">Approve by ${phtWhen(live - LEAD_MS)} · goes live ${phtWhen(live)}</div></div></div>`;
+      <div class="muted">${aa != null ? `Auto-approves at ${phtWhen(aa)}` : `Approve by ${phtWhen(live - LEAD_MS)}`} · goes live ${phtWhen(live)}</div></div></div>`;
   }).join("");
   S.approvalAlert = pending.find(p => p.live - LEAD_MS - now < 3600000) || null;
   return pending.length;
@@ -2040,6 +2089,7 @@ function renderHealth() {
     pc.lastElementChild.textContent += ` · auto-fix ${autofix ? "ON" : "off"}`;
     pc.title += " · Auto-fix: bug fixes are merged without a tap (/autofix in Telegram)";
   }
+  renderAutoApprove();
   if (sch > HB_STALE_MS) alerts.push(["", `<b>The mini PC hasn't checked in for ${sch === Infinity ? "a long time" : span(sch)}.</b>
     It may be off, asleep, restarting or offline - videos won't be made or posted until it's back.`]);
   if (lis > HB_STALE_MS && sch <= HB_STALE_MS) alerts.push(["warn", `<b>The Telegram listener isn't responding</b> (last seen
@@ -2148,6 +2198,7 @@ async function load() {
       .gte("at", new Date(Date.now() - 35 * 86400000).toISOString()).order("at", { ascending: false }).limit(8000);
     if (!sp.error) S.spend = sp.data;
   } catch (e) { /* the Spending window just shows nothing */ }
+  await loadAutoApprove();
   renderAll();
 }
 let channel;
@@ -2179,6 +2230,8 @@ function subscribe() {
       renderSchedule(); renderScreens(); paintSeason();
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "heartbeat" }, p => { if (p.new?.id) { S.heartbeat[p.new.id] = p.new; renderHealth(); renderAccounts(); renderSubs(); syncMeeting(); } })
+    .on("postgres_changes", { event: "*", schema: "public", table: "office_settings" }, p => {   // needs office_settings in the realtime publication (docs/sql/office_settings.sql)
+      if (p.new?.key === "autoapprove") { S.autoapprove = !!p.new.value?.on; renderAutoApprove(); renderApprovals(); } })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "credits" }, p => { S.credits.push(p.new); renderCredits(); })
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "spend" }, p => spendArrived(p.new))   // needs spend in the supabase_realtime publication (docs/notes/office.md)
     .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, p => {
@@ -2262,7 +2315,7 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
   fetch("schedule.json").then(r => r.ok ? r.json() : null).then(j => { S.schedule = j; renderSchedule(); renderScreens(); }).catch(() => {});
   const alertsDemo = new URLSearchParams(location.search).get("demo") === "alerts";   // ?demo=alerts previews the warnings
   S.heartbeat = { scheduler: { at: new Date(Date.now() - (alertsDemo ? 45 : 3) * 60000).toISOString(), info: { disk_free_gb: 142.6 } },
-                  listener: { at: new Date().toISOString(), info: {} },
+                  listener: { at: new Date().toISOString(), info: { autoapprove: QS.has("autoapprove") } },   // ?demo&autoapprove previews the On pill
                   subscribers: { at: new Date(Date.now() - 6 * 60000).toISOString(), info: { counts: { youtube: 22, facebook: 8, instagram: 5, tiktok: null }, today: { youtube: 1, facebook: 0, instagram: 0 }, week: { youtube: 3, facebook: 2, instagram: 1 } } },
                   connections: { at: new Date(Date.now() - 20 * 60000).toISOString(), info: {
                     youtube: { ok: true, detail: "channel: Silent Hallelujah (demo)" },
