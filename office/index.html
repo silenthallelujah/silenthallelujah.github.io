@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-11-20 22:24">
+<meta name="build" content="2026-11-22 09:47">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2093,22 +2093,29 @@ async function toggleAutoApprove() {
   aaMsg = msg; renderAutoApprove(); renderApprovals();
   clearTimeout(aaMsgTimer); aaMsgTimer = setTimeout(() => { aaMsg = ""; renderAutoApprove(); }, 4000);
 }
-// Live backup (2026-11-20): a phone or background tab drops the realtime connection without saying so, and a change made in
-// Telegram then only showed after a page refresh. So: re-read the one setting row every 5 s while the page is visible, and
-// at once when it comes back to the front (after a longer absence reload everything, like a reconnect does).
-let aaBusy = false, hiddenAt = 0;
-async function refreshAutoApprove() {
-  if (IS_DEMO || aaBusy || document.hidden || document.body.classList.contains("gated")) return;
-  aaBusy = true;
-  const before = S.autoapprove;
-  try { await loadAutoApprove(); } finally { aaBusy = false; }
-  if (S.autoapprove !== before) { renderAutoApprove(); renderApprovals(); }
+// Live check for the WHOLE page (2026-11-22, replaces the Auto-Approve-only poll of 2026-11-20): a phone or background tab
+// drops the realtime connection without any event, and changes (Telegram /autoapprove, board, runs, agents ...) then only
+// showed after a refresh. Every 5 s while visible the page pings its own channel (broadcast with server ack, one tiny message,
+// no table reads); no answer within 4 s -> resubscribe, and SUBSCRIBED runs load(), so everything catches up within ~5-10 s.
+// Also checked at once when the tab comes back to the front; hidden over 60 s -> full load() as well.
+let hiddenAt = 0, liveBusy = false;
+async function liveCheck() {
+  if (IS_DEMO || liveBusy || document.hidden || document.body.classList.contains("gated") || !channel) return;
+  if (channel.state === "joining") return;          // a (re)connect is already on its way
+  liveBusy = true;
+  try {
+    const ok = channel.state === "joined" && await Promise.race([
+      channel.send({ type: "broadcast", event: "ping", payload: {} }),
+      new Promise(r => setTimeout(() => r("timed out"), 4000))]) === "ok";
+    if (!ok) { document.getElementById("livetxt").textContent = "Reconnecting…"; subscribe(); }
+  } catch (e) { subscribe(); } finally { liveBusy = false; }
 }
-setInterval(refreshAutoApprove, 5000);
+setInterval(liveCheck, 5000);
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) { hiddenAt = Date.now(); return; }
   if (document.body.classList.contains("gated") || IS_DEMO) return;
-  if (hiddenAt && Date.now() - hiddenAt > 60000) load().catch(showError); else refreshAutoApprove();
+  if (hiddenAt && Date.now() - hiddenAt > 60000) load().catch(showError);
+  liveCheck();
 });
 document.getElementById("aa").addEventListener("click", toggleAutoApprove);
 document.getElementById("aa").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleAutoApprove(); } });
@@ -2264,9 +2271,9 @@ async function load() {
 }
 let channel;
 function subscribe() {
-  channel?.unsubscribe();
+  if (channel) sb.removeChannel(channel);          // remove, not just unsubscribe: supabase-js 2.x reuses a channel by topic name
   const upsert = (list, row, key) => { const i = list.findIndex(x => x[key] === row[key]); if (i >= 0) list[i] = row; else list.push(row); };
-  channel = sb.channel("office")
+  channel = sb.channel("office", { config: { broadcast: { ack: true } } })   // ack: the 5 s liveCheck() ping waits for the server's answer
     .on("postgres_changes", { event: "*", schema: "public", table: "agents" }, p => {
       if (p.new?.id === "boss" && p.new.status === "waiting" && S.agents.get("boss")?.status !== "waiting") cue("approve");
       if (p.new?.id) S.agents.set(p.new.id, p.new);
