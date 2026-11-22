@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="build" content="2026-11-22 09:47">
+<meta name="build" content="2026-11-22 10:16">
 <title>Silent Hallelujah Office</title>
 <link rel="icon" href="../logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,6 +63,27 @@ main { max-width: 1480px; margin: 0 auto; padding: 16px; display: grid; gap: 16p
 @keyframes aapulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(242,179,61,.7); } 50% { box-shadow: 0 0 0 6px rgba(242,179,61,0); } }
 #alerts { max-width: 1180px; margin: 12px auto 0; padding: 0 16px; }
 #alerts .al { background: #3a1518; border: 2px solid var(--err); color: #ffd6d6; border-radius: 6px; padding: 9px 12px; margin-bottom: 8px; font-size: 13.5px; }
+#alerts .al.link { cursor: pointer; } #alerts .al.link:hover, #alerts .al.link:focus-visible { filter: brightness(1.15); outline: none; }
+#alerts .al .open { float: right; font-weight: 700; color: #fff; white-space: nowrap; margin-left: 10px; }
+/* issue page (2026-11-22): a ticket in plain words - opened from a red alert or a board card */
+#ismodal { align-items: center; padding: 16px; }
+.isbox { background: #14142a; border: 2px solid var(--gold); border-radius: 8px; width: min(720px, 100%); max-height: 92vh; overflow: auto;
+         padding: 14px 18px 16px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.ishead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.ishead h2 { margin: 0; font: 12px/1.6 var(--pixel); color: var(--gold); flex: 1; }
+.isbox .ti { font: 700 18px/1.35 var(--body); color: #fffdf5; margin: 2px 0 6px; }
+.isbox .meta { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.isbox h3 { margin: 14px 0 6px; font: 600 12px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--gold); }
+.isbox p, .isbox li { font: 14px/1.55 var(--body); color: var(--ink); margin: 0 0 6px; overflow-wrap: anywhere; }
+.isbox ol { margin: 0; padding-left: 22px; } .isbox a { color: #8ab4ff; }
+.isbox .todo-box { background: rgba(242,193,78,.08); border: 1px solid rgba(242,193,78,.45); border-radius: 6px; padding: 8px 12px; }
+.isbox .hist li { color: var(--muted); font-size: 13px; }
+.isbox .foot { margin-top: 14px; font-size: 12px; color: var(--muted); }
+.ispill { font: 600 11.5px var(--body); padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); }
+.ispill.s-done { background: rgba(95,211,141,.15); border-color: var(--work); color: #c9f3da; }
+.ispill.s-waiting { background: rgba(242,193,78,.15); border-color: var(--wait); color: #ffeab0; }
+.ispill.s-doing, .ispill.s-watching { background: rgba(91,184,217,.15); border-color: var(--watch); color: #cdeaf5; }
+.kcard, .todo.compact { cursor: pointer; }
 #alerts .al b { color: #fff; } #alerts .al.warn { background: #3a2f12; border-color: var(--wait); color: #ffeab0; }
 .appr { border: 1px solid var(--line); border-left: 4px solid var(--work); border-radius: 5px; padding: 7px 9px; margin-bottom: 8px; font-size: 13px; }
 .appr .cd { font: 10px/1.8 var(--pixel); } .appr.amber { border-left-color: var(--wait); } .appr.amber .cd { color: var(--wait); }
@@ -1810,7 +1831,7 @@ function renderToday() {
 }
 function renderTasks() {
   const open = S.tasks.filter(t => t.status !== "done").sort((a, b) => a.num - b.num);
-  const row = t => `<div class="todo compact" title="${esc(t.detail)}"><span class="num">#${t.num}</span>${esc(t.title)}
+  const row = t => `<div class="todo compact" data-task="${t.num}" title="Open ticket #${t.num}"><span class="num">#${t.num}</span>${esc(plainStep(t.title))}
       <span class="pill st-${["doing", "watching"].includes(t.status) ? "working" : t.status === "waiting" ? "waiting" : "idle"}">${esc(t.status)}</span></div>`;
   const mine = open.filter(t => t.owner === "You"), claude = open.filter(t => t.owner === "Claude");
   const boss = S.agents.get("boss");
@@ -1818,6 +1839,7 @@ function renderTasks() {
   document.getElementById("mine").innerHTML = extra + (mine.map(row).join("") || (extra ? "" : `<p class="muted">Nothing - enjoy your coffee.</p>`));
   document.getElementById("claude").innerHTML = claude.map(row).join("") || `<p class="muted">Queue is empty.</p>`;
   renderBoard();
+  if (issueOpen) openIssue(issueOpen);          // an open issue page follows live ticket changes
 }
 const BOARD = { owner: "all", allDone: false, DONE_SHOWN: 8 };
 const COLS = [["backlog", "BACKLOG"], ["doing", "IN PROGRESS"], ["watching", "WATCHING"], ["waiting", "WAITING"], ["done", "DONE"]];
@@ -1830,11 +1852,11 @@ function renderBoard() {
     return `<div class="wagent"><img src="${portrait(t.agent)}" alt="">
       <b>${esc(a?.name || t.agent)}</b>${t.activity ? `<span class="act">— ${esc(t.activity)}</span>` : ""}</div>`;
   };
-  const card = t => `<div class="kcard s-${esc(t.status)}">
+  const card = t => `<div class="kcard s-${esc(t.status)}" data-task="${t.num}" role="button" tabindex="0" title="Open ticket #${t.num}">
       <div class="top"><span class="num">#${t.num}</span><span class="badge">${esc(t.area)}</span>
         <span class="badge ${t.owner === "You" ? "who-you" : "who-claude"}">${t.owner === "You"
           ? `<img class="av sm" src="${portrait("boss")}" alt="">You` : `<span class="claude-mark">✳</span>Claude`}</span></div>
-      <div class="ti">${esc(t.title)}</div>
+      <div class="ti">${esc(plainStep(t.title))}</div>
       ${wagent(t)}
       <div class="de">${esc(t.detail)}</div>
       <div class="ft">${t.status === "done" ? `Done ${esc(t.done_on || "")}` : t.updated_at ? `Updated ${ago(t.updated_at)}` : ""}</div></div>`;
@@ -2077,6 +2099,81 @@ function shConfirm({ title, body, ok = "OK", cancel = "Cancel" }) {
     m.querySelector(".cfok").focus();
   });
 }
+// ---------- issue page (2026-11-22): one ticket in plain words, from a red alert or any board card ----------
+// Same plain step names as incidents.STEPS (Python) - for alerts/tickets written before titles were cleaned up.
+const STEP_NAMES = [["story.py images", "Making the Bible-story pictures"], ["story.py build", "Building the Bible-story background"],
+  ["narrate.sh", "Recording the narration"], ["render.sh", "Rendering the video"], ["videocheck.py", "Checking the video"],
+  ["editorial.py", "Writing and checking the script"], ["pick_music.py", "Choosing the music"],
+  ["companions.py story", "Making the Facebook Story"], ["companions.py feed", "Making the Facebook feed card"],
+  ["telegram.py send", "Sending the preview to Telegram"], ["slots.py", "Checking the evening slot"], ["office.py", "Updating the office page"]];
+function plainStep(s) {
+  const x = String(s ?? "").replace(/^(Run failed:\s*)+/i, "Run failed: ");
+  const m = x.match(/(?:python|bash)\s+[\w./-]+\.(?:py|sh)[\s\S]*$/);
+  if (!m) return x;
+  const cmd = m[0].replace(/\s+/g, " ");
+  return x.slice(0, m.index) + (STEP_NAMES.find(([n]) => cmd.includes(n))?.[1] || "A pipeline step");
+}
+function issueFor(a) {                          // the ticket Priya opened for this agent's video (newest open one first)
+  if (!a?.day) return null;
+  const c = S.tasks.filter(t => (t.detail || "").includes(`Video/key: ${a.day}`)).sort((x, y) => y.num - x.num);
+  return c.find(t => t.status !== "done") || c[0] || null;
+}
+const ST_LABEL = { backlog: "Backlog", doing: "In Progress", watching: "Watching", waiting: "Waiting", done: "Done" };
+function linkify(s) {
+  return esc(s).replace(/https?:\/\/[^\s<]+[^\s<.,;:)]/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+}
+function issueParts(detail) {                   // Joseph's diagnosis, the owner's steps, everything else as history
+  const happened = [], todo = [], hist = [];
+  let inTodo = false;
+  for (const raw of String(detail || "").split("\n")) {
+    const s = raw.trim();
+    if (!s) continue;
+    if (/^Joseph:/i.test(s)) { happened.push(s.replace(/^Joseph:\s*/i, "").replace(/\s*→\s*[\w_]+\s*$/, "")); inTodo = false; }
+    else if (/^Needs Nimrod:/i.test(s)) { inTodo = true; const r = s.replace(/^Needs Nimrod:\s*/i, "").replace(/^\d+[.)]\s*/, ""); if (r) todo.push(r); }
+    else if (inTodo && /^\d+[.)]\s/.test(s)) todo.push(s.replace(/^\d+[.)]\s*/, ""));
+    else { inTodo = false; hist.push(s); }
+  }
+  return { happened, todo, hist };
+}
+let issueOpen = 0;
+function openIssue(num) {
+  const t = S.tasks.find(x => x.num === num);
+  if (!t) return;
+  issueOpen = num;
+  let m = document.getElementById("ismodal");
+  if (!m) {
+    m = document.createElement("div"); m.id = "ismodal"; m.className = "calmodal";
+    m.addEventListener("click", e => { if (e.target === m) closeIssue(); });
+    document.body.append(m);
+  }
+  const { happened, todo, hist } = issueParts(t.detail), video = (t.detail || "").match(/Video\/key: ([\w-]+)/)?.[1];
+  const st = t.status || "backlog", done = st === "done";
+  m.innerHTML = `<div class="isbox" role="dialog" aria-modal="true" aria-labelledby="isti">
+    <div class="ishead"><h2>ISSUE #${t.num}</h2><span class="ispill s-${esc(st)}">${esc(ST_LABEL[st] || st)}</span>
+      <button class="ghost" id="isclose" title="Close">×</button></div>
+    <div class="ti" id="isti">${esc(plainStep(t.title))}</div>
+    <div class="meta"><span class="ispill">${esc(t.area || "General")}</span><span class="ispill">${esc(t.owner === "You" ? "You" : t.owner || "Software team")}</span>
+      ${video ? `<span class="ispill">Video ${esc(video)}</span>` : ""}${t.updated_at ? `<span>Updated ${ago(t.updated_at)}</span>` : ""}</div>
+    ${happened.length ? `<h3>What Happened</h3>${happened.map(p => `<p>${linkify(p)}</p>`).join("")}` : ""}
+    ${todo.length ? `<h3>${done ? "What Was Needed From You" : "What You Need To Do"}</h3>
+      <div class="todo-box"><ol>${todo.map(p => `<li>${linkify(p)}</li>`).join("")}</ol></div>` : ""}
+    ${!happened.length && !todo.length ? `<h3>Details</h3>${hist.map(p => `<p>${linkify(p)}</p>`).join("") || `<p class="muted">No details yet.</p>`}`
+      : hist.length ? `<h3>History</h3><ul class="hist">${hist.map(p => `<li>${linkify(p)}</li>`).join("")}</ul>` : ""}
+    <div class="foot">${done ? `Closed ${esc(t.done_on || "")}.` : "The buttons for this ticket (Approve, Re-run, Close) are in Telegram."}
+      This page updates by itself.</div></div>`;
+  m.classList.remove("hide");
+  m.querySelector("#isclose").onclick = closeIssue;
+}
+function closeIssue() { issueOpen = 0; document.getElementById("ismodal")?.classList.add("hide"); }
+addEventListener("keydown", e => { if (e.key === "Escape" && issueOpen) closeIssue(); });
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-task]");
+  if (el && !e.target.closest("a, button, select, input")) openIssue(+el.dataset.task);
+});
+document.addEventListener("keydown", e => {
+  const el = e.target.closest?.("[data-task]");
+  if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openIssue(+el.dataset.task); }
+});
 async function toggleAutoApprove() {
   const next = !aaOn();
   if (!await shConfirm(next
@@ -2164,9 +2261,10 @@ function renderHealth() {
     ${hb("listener") ? ago(hb("listener").at) : "never"}). Button taps will wait until it restarts.`]);
   S.agents.forEach(a => {
     if (effStatus(a) !== "error") return;
-    const stuck = a.status === "working";
-    alerts.push(["", `<b>${esc(a.name)} (${esc(a.role)})</b> ${stuck ? "seems stuck" : "reported a problem"}: ${esc(a.activity)}
-      <span class="muted">· ${ago(a.updated_at)}${a.day ? ` · video ${esc(a.day)}` : ""}</span>`]);
+    const stuck = a.status === "working", t = issueFor(a);
+    alerts.push(["", `${t ? `<span class="open">Open #${t.num} ›</span>` : ""}<b>${esc(a.name)} (${esc(a.role)})</b>
+      ${stuck ? "seems stuck" : "reported a problem"}: ${esc(plainStep(a.activity))}
+      <span class="muted">· ${ago(a.updated_at)}${a.day ? ` · video ${esc(a.day)}` : ""}</span>`, t?.num]);
   });
   Object.entries(hb("connections")?.info || {}).forEach(([k, r]) => {
     if (r && r.ok === false) alerts.push(["", `<b>${ACCOUNTS[k] || esc(k)} connection is broken</b> - posts there will fail.
@@ -2183,7 +2281,9 @@ function renderHealth() {
       ? `<b>Approve "${esc(S.approvalAlert.r.title || "the next video")}" within ${span(left)}</b> to post it on schedule.`
       : `<b>"${esc(S.approvalAlert.r.title || "A video")}" missed its scheduled time</b> - it will post as soon as you approve it in Telegram.`]);
   }
-  al.innerHTML = alerts.map(([c, h]) => `<div class="al ${c}">${h}</div>`).join("");
+  al.innerHTML = alerts.map(([c, h, num]) => num
+    ? `<div class="al ${c} link" data-task="${num}" role="button" tabindex="0" title="Open ticket #${num}">${h}</div>`
+    : `<div class="al ${c}">${h}</div>`).join("");
   al.classList.toggle("hide", !alerts.length);
 }
 function weekDates() {                          // Mon..Sun of this week in Manila, as YYYY-MM-DD
@@ -2361,6 +2461,11 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
     S.vstats[d] = { views: 40 + i * 37, likes: i * 3, comments: i % 3 }; S.vstats[d + "-pm"] = { views: 12 + i * 21, likes: i, comments: 0 };
   }
   S.tasks = [{ id: "d1", num: 1, title: "Demo task waiting on you", detail: "Example only.", area: "Publishing", owner: "You", status: "waiting", sort: 1 },
+             { id: "d737", num: 737, title: 'Run failed: Run failed: python story.py images "$wd"', area: "Infrastructure", owner: "Software team",   // ?demo&alerts: the issue page
+               status: "waiting", sort: 0, updated_at: new Date(Date.now() - 3600000).toISOString(),
+               detail: ["daily.sh line 109", "Escalated by Priya 2026-11-22 09:05 PHT. Video/key: demo-pm.",
+                 "Joseph: Demo - the OpenAI account that makes the Bible-story pictures has run out of credits, so 0 of 7 scene pictures were made. Nothing in our code is wrong. → owner",
+                 "Needs Nimrod: 1. Open https://platform.openai.com/settings/organization/billing/ and sign in.", "2. Add credits.", "3. Tap Re-run in Telegram."].join(String.fromCharCode(10)) },
              { id: "d2", num: 2, title: "Demo task for Claude", detail: "Example only.", area: "Visuals", owner: "Claude", status: "doing", sort: 1, agent: "developer", activity: "Writing the fix" },
              { id: "d0", num: 0, title: "Demo growth experiment, being watched", detail: "Example only.", area: "Channel", owner: "You",
                status: "watching", sort: 1, agent: "strategist", activity: "Watching this week's numbers" },
@@ -2414,7 +2519,7 @@ function demo() {        // ?demo: made-up statuses to preview the office withou
     Object.assign(S.agents.get(id), { status: st, activity: act, updated_at: now() });
     S.agents.get("producer").status = "working";
     S.agents.get("boss").status = id === "clerk" ? "waiting" : "idle";
-    if (alertsDemo) Object.assign(S.agents.get("social"), { status: "error", activity: "Demo: Instagram failed - retrying next run" });
+    if (alertsDemo) Object.assign(S.agents.get("social"), { status: "error", activity: 'Run failed: python story.py images "$wd"', day: "demo-pm" });
     S.runs[0].stage = stages[i % stages.length];
     S.events.unshift({ at: now(), agent: id, kind: "start", message: act });
     if (i > 0) {                                                            // preview the hand-off walk + pass pop
